@@ -1,0 +1,32 @@
+# OS/editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# env/secrets
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+logs/
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+
+# backend
+backend/bin/
+backend/tmp/
+*.test
+
+# uploads/backups
+uploads/
+backups/
+*.sql.gz
+*.tar.gz
+
+# docker
+docker-compose.override.yml
