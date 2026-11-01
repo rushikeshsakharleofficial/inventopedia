@@ -1,4 +1,4 @@
-# AGENTS.md — Inventopedia
+# AGENTS.md â€” Inventopedia
 
 ## Architecture Constraints
 
@@ -38,7 +38,7 @@ npm run typecheck    # TypeScript type checking
 
 ## Multi-Tenant Model
 
-User → Organisation → Project → (Categories, Templates, Inventory)
+User â†’ Organisation â†’ Project â†’ (Categories, Templates, Inventory)
 
 - All data queries scoped to project
 - RLS enforces org/project isolation
@@ -51,6 +51,69 @@ User → Organisation → Project → (Categories, Templates, Inventory)
 - Update it at every checkpoint
 - Trust repo evidence over handoff claims
 - One agent modifies working tree at a time
+
+## Claude + Codex: Interchangeable Agents
+
+- Claude and Codex are **peers**, not fixed architect/implementer roles. Either may plan, code, test, review, debug, or complete a milestone.
+- When one agent reaches its context or usage limit, the other resumes the **same unfinished task**. Do not restart the milestone, repeat completed work, or assume unverified work is complete.
+- **Session start:** Read `AGENTS.md`, `docs/AI_HANDOFF.md` and `docs/FEATURE_MAP.md`; inspect the current branch, working-tree state, and latest commit. Read only the files needed for the active task.
+- Follow repository evidence when docs and code conflict; correct stale handoff notes rather than silently trusting them.
+- Only one agent may change a working tree at a time. Never run competing editors or overlapping Git operations across agents.
+- **Session end or handoff:** Update `docs/AI_HANDOFF.md` with CURRENT_MILESTONE, CURRENT_TASK, STATUS, LAST_VERIFIED_COMMIT, COMPLETED, FILES_CHANGED, TESTS_PASSED, TESTS_FAILED, UNCOMMITTED_CHANGES, BLOCKERS, NEXT_EXACT_ACTION, and IMPORTANT_WARNINGS.
+- Specify whether changes are local-only, committed, or pushed. Do not mark a commit or test verified unless actually confirmed. If an agent stops mid-command, the incoming agent must verify its result.
+- Keep the handoff concise. Include exact paths and the next actionable step, not a full conversation transcript.
+
+## Git Workflow — Main Until Foundation Is Stable
+
+### Phase A: Initial foundation (current default)
+
+- **Work directly on `main`** while the complete project foundation is being built and stabilised. Do **not** create development, staging, experiment, or per-milestone branches during this phase.
+- Foundation work, initial integration, setup corrections, and incidental patches stay on `main` until the stability gate is approved.
+- Make small, logical commits only after relevant checks pass. Never force-push, reset away other work, rewrite published history, or commit secrets.
+- Review existing changes before writing; respect uncommitted work from the previous agent.
+- Do not push proprietary code while the GitHub repository is public. Confirm repository privacy before any such push. Never put credentials in Git regardless of visibility.
+
+### Foundation stability gate
+
+Declare the foundation **ready for review** only after verifying:
+1. `packages/api`, `packages/web`, and `packages/shared` build and typecheck successfully.
+2. Hono API starts, `/api/v1` routing works, and the frontend integration contract is documented.
+3. PostgreSQL versioned migrations can be applied and checked in a reproducible test environment.
+4. Supabase JWT authentication and organisation/project access boundaries have working tests.
+5. Lint, relevant unit/integration tests, and CI checks pass, without unresolved critical security or foundation errors.
+6. Configuration, `.env.example`, documentation, feature map, and AI handoff agree with the real code.
+7. The system has an identified baseline commit and an evidence-based stability report.
+
+This gate does **not** require every inventory feature, payment flow, or enterprise provisioning workflow to be finished. **Do not switch branching policy automatically**: record readiness and obtain the user's explicit approval.
+
+### Phase B: Stable baseline (only after user approval)
+
+- Keep `main` as the stable integration branch.
+- Create a short-lived branch **only for new features or bug fixes/patches**:
+  - `feature/<short-description>`
+  - `fix/<short-description>`
+  - `hotfix/<short-description>` for urgent fixes
+- Branch from the latest verified `main`. Never create branches simply to run tests, review documentation, or switch AI agents.
+- Implement the scoped change, run focused tests, and open a PR to `main` with a concise summary and test evidence. Merge only after required checks pass.
+- Avoid direct feature/patch commits to `main` after Phase B starts. No force pushes; do not delete branches with unmerged work.
+
+## Implementation and Safety Priorities
+
+- Preserve the subscription contract: Free **2** projects, Starter **5**, Business **10**, Enterprise **custom**; limits apply per organisation. Other quotas are configurable and must not be invented.
+- Free/Starter/Business use a shared inventory database. Enterprise supports shared or dedicated PostgreSQL by approved configuration; do not provision paid infrastructure speculatively.
+- Keep domain/business logic portable between Vercel Functions now and Docker + NGINX + on-premises PostgreSQL later. Preserve the `/api/v1` contract through migration.
+- Treat billing, tenant isolation, quotas, stock adjustments, and RLS as security-critical. Authorise server-side, validate all input, use race-safe database transactions, and add focused regression tests.
+- Never execute destructive database migrations, reveal secrets, or deploy production changes without explicit authorisation.
+- Do not assume that migrating Supabase PostgreSQL also migrates Auth users, Storage objects, or their configurations; plan those separately.
+
+## Token-Efficient Navigation and Validation
+
+- Use `docs/FEATURE_MAP.md` and the available code graph tools before broad searches. For symbol bodies, prefer `code-outline`; for dependencies, blast radius, and reviews, prefer `code-review-graph`.
+- Graph indexes may be missing or stale. If a graph tool is unavailable, fails, or returns incomplete data, fall back to a targeted `rg`, `git diff`, or exact file/range read; do not block necessary work.
+- Avoid reading entire directories, repeated repository-wide audits, long terminal output, or duplicate checks.
+- After source edits, refresh indexes when available; if indexing fails, report the failure without treating it as a failed code build.
+- Run the smallest meaningful tests for the change, then required full checks at milestone/stability gates.
+- Keep final output brief: changed files, tests/results, commit/hash (if verified), blockers, and next action.
 
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
@@ -75,8 +138,8 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 
 | Tool | Use when |
 |------|----------|
-| `detect_changes` | Reviewing code changes — gives risk-scored analysis |
-| `get_review_context` | Need source snippets for review — token-efficient |
+| `detect_changes` | Reviewing code changes â€” gives risk-scored analysis |
+| `get_review_context` | Need source snippets for review â€” token-efficient |
 | `get_impact_radius` | Understanding blast radius of a change |
 | `get_affected_flows` | Finding which execution paths are impacted |
 | `query_graph` | Tracing callers, callees, imports, tests, dependencies |
@@ -94,11 +157,11 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 <!-- code-outline-graph:start -->
 ## code-outline-graph MCP Tools
 
-This project is indexed with [code-outline-graph](https://github.com/rushikeshsakharleofficial/code-outline-graph). MCP server name: `code-outline`. Use these tools instead of reading source files directly (10x�50x fewer tokens).
+This project is indexed with [code-outline-graph](https://github.com/rushikeshsakharleofficial/code-outline-graph). MCP server name: `code-outline`. Use these tools instead of reading source files directly (10x–50x fewer tokens).
 
 | Tool | When to use |
 |------|-------------|
-| `resolve_edit_target(description)` | Find function/class by natural language � returns signatures only, no body |
+| `resolve_edit_target(description)` | Find function/class by natural language — returns signatures only, no body |
 | `read_symbol_body(name, file)` | Read one symbol's source lines (never the full file) |
 | `list_outline(file)` | All symbols + line ranges in a file |
 | `get_outline_summary(file)` | Compressed signatures view |
