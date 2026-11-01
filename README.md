@@ -1,23 +1,39 @@
 # Inventopedia
 
-Inventopedia is being rebuilt from a clean architecture.
+Universal multi-tenant inventory management SaaS.
 
-The previous Go/Caddy/frontend implementation has been removed from the current `main` tree. Historical commits remain available in Git history.
+## Stack
 
-## Rebuild direction
+- **Frontend**: React + TypeScript + Vite + Tailwind
+- **Backend**: TypeScript + Hono
+- **API**: REST `/api/v1`, OpenAPI 3.1
+- **Database**: Supabase PostgreSQL + JSONB
+- **Auth**: Supabase Auth
+- **Testing**: Vitest
 
-- Frontend: React, TypeScript, Vite, Tailwind CSS
-- Backend: TypeScript + Hono, versioned `/api/v1`
-- Database: PostgreSQL (structured relational tables + JSONB custom fields)
-- Multi-tenancy: Users → Organisations → Projects
-- Subscriptions: Free (2 projects), Starter (5), Business (10), Enterprise (custom)
-- Enterprise hosting: shared or dedicated PostgreSQL database
-- Authentication, permissions, quota enforcement and database isolation are mandatory
+## Structure
 
-## Privacy prerequisite
+```
+packages/
+  api/     — Hono REST API server
+  web/     — React SPA
+  shared/  — Shared types and utilities
+docs/      — Architecture, handoff, and API docs
+```
 
-**Make this existing repository private before importing the new frontend source and rebuild package.**
+## Getting Started
 
-GitHub → Settings → General → Danger Zone → Change repository visibility → Make private.
+```bash
+npm install
+npm run dev        # Start API + Web dev servers
+npm run test       # Run all tests
+```
 
-The replacement source package is prepared separately; no credentials should ever be committed.
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Roadmap](docs/ROADMAP.md)
+- [API Contracts](docs/API_V1.md)
+- [Database](docs/DATABASE.md)
+- [AI Handoff](docs/AI_HANDOFF.md)
+- [Feature Map](docs/FEATURE_MAP.md)
