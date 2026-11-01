@@ -37,4 +37,35 @@ Response:
 |--------|------|------|-------------|
 | GET | `/api/v1/health` | No | Health check |
 
-*Endpoints will be documented as they are implemented.*
+### Organisations
+
+| Method | Path | Access | Description |
+|--------|------|--------|-------------|
+| POST | `/api/v1/organisations` | Signed in | Create org with caller as owner |
+| GET | `/api/v1/organisations` | Signed in | List caller's orgs and roles |
+| GET | `/api/v1/organisations/:orgId` | Org member | Get org and caller role |
+| GET | `/api/v1/organisations/:orgId/members` | Org member | List org memberships |
+
+Creation body: `{ "name": "Example", "slug": "example-org" }`. Name length is
+1–200; slug length is 3–64, lowercase letters/digits/hyphens, with alphanumeric
+first and last characters. Successful responses use `{ data, requestId }`;
+creation returns 201, reads return 200. Duplicate slug returns 409 / `SLUG_CONFLICT`.
+
+Clients sign in with Supabase Auth and supply its access token. The API validates
+tokens with Supabase `getUser`; it does not accept client-supplied user IDs or roles.
+Invalid/missing credentials return 401 / `UNAUTHORIZED`. Scoped org/project IDs
+must be UUIDs (400 / `VALIDATION_ERROR`). Invisible or inaccessible scope returns
+404 / `NOT_FOUND`, insufficient role returns 403 / `FORBIDDEN`, and database or
+unexpected failures return 500 / `INTERNAL_ERROR`. All use the common error format.
+
+### M2 middleware for future project routes
+
+Use `authMiddleware()` before `orgScope()` / `projectScope()`. Scope IDs come
+from `:orgId` / `:projectId` route parameters. A nested org and project must agree.
+Follow with `requireOrgRole(...allowed)` or `requireProjectRole(...allowed)` for
+operations requiring elevated permissions; guards deny access without scope.
+Org roles: owner, admin, member. Project roles: owner, admin, editor, viewer.
+Owner/admin org roles inherit corresponding project roles; other users require
+both org and explicit project membership. Guards use explicit allowed-role lists.
+
+Project CRUD, subscription limit APIs, and frontend auth UI remain deferred.

@@ -39,3 +39,4 @@ describe('Organisation routes — auth guard', () => {
     expect(res.status).toBe(401);
   });
 });
+

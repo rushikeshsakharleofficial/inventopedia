@@ -1,3 +1,9 @@
 [mcp_servers.code-outline]
 command = "code-outline-graph"
 args = ["serve", "--no-watch"]
+
+[mcp_servers.code-outline.tools.get_line_range]
+approval_mode = "approve"
+
+[mcp_servers.code-outline.tools.list_outline]
+approval_mode = "approve"

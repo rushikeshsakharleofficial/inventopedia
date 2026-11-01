@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
+import { orgScope } from '../middleware/orgScope.js';
 import { validateBody } from '../middleware/validation.js';
 import {
   createOrganisation,
@@ -41,7 +42,7 @@ organisationsRoute.post('/', validateBody(createOrgSchema), async (c) => {
 organisationsRoute.get('/', async (c) => {
   const accessToken = c.get('accessToken');
 
-  const orgs = await listUserOrganisations(accessToken);
+  const orgs = await listUserOrganisations(c.get('user').id, accessToken);
 
   return c.json({
     data: orgs,
@@ -50,11 +51,11 @@ organisationsRoute.get('/', async (c) => {
 });
 
 // GET /organisations/:orgId — get a single organisation
-organisationsRoute.get('/:orgId', async (c) => {
+organisationsRoute.get('/:orgId', orgScope(), async (c) => {
   const accessToken = c.get('accessToken');
-  const orgId = c.req.param('orgId');
+  const orgId = c.get('org').id;
 
-  const org = await getOrganisation(orgId, accessToken);
+  const org = await getOrganisation(orgId, c.get('user').id, accessToken);
 
   if (!org) {
     return c.json(
@@ -71,9 +72,9 @@ organisationsRoute.get('/:orgId', async (c) => {
 });
 
 // GET /organisations/:orgId/members — list org members
-organisationsRoute.get('/:orgId/members', async (c) => {
+organisationsRoute.get('/:orgId/members', orgScope(), async (c) => {
   const accessToken = c.get('accessToken');
-  const orgId = c.req.param('orgId');
+  const orgId = c.get('org').id;
 
   const members = await listOrgMembers(orgId, accessToken);
 

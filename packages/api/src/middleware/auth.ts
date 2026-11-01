@@ -9,7 +9,8 @@ import type { AppEnv, AuthUser } from '../types.js';
 export function authMiddleware(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const authHeader = c.req.header('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const token = authHeader?.match(/^Bearer ([^\s]+)$/i)?.[1];
+    if (!token) {
       return c.json(
         {
           error: 'Missing or invalid Authorization header',
@@ -19,8 +20,6 @@ export function authMiddleware(): MiddlewareHandler<AppEnv> {
         401
       );
     }
-
-    const token = authHeader.slice(7);
 
     try {
       const supabase = getSupabaseAdmin();
@@ -40,9 +39,8 @@ export function authMiddleware(): MiddlewareHandler<AppEnv> {
         );
       }
 
-      c.set('user', { id: user.id, email: user.email! } satisfies AuthUser);
+      c.set('user', { id: user.id, email: user.email ?? null } satisfies AuthUser);
       c.set('accessToken', token);
-      await next();
     } catch {
       return c.json(
         {
@@ -53,5 +51,6 @@ export function authMiddleware(): MiddlewareHandler<AppEnv> {
         401
       );
     }
+    await next();
   };
 }

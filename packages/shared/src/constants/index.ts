@@ -6,3 +6,4 @@ export const DEFAULT_PAGE_LIMIT = 20;
 
 /** Maximum pagination limit */
 export const MAX_PAGE_LIMIT = 100;
+

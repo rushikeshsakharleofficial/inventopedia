@@ -35,3 +35,4 @@ export async function writeAuditLog(entry: AuditLogEntry): Promise<void> {
     console.error('Audit log write error:', err);
   }
 }
+

@@ -26,6 +26,19 @@ Maps features to implementation files for targeted navigation.
 | Request ID | `packages/api/src/middleware/requestId.ts` |
 | Project scope | `packages/api/src/middleware/projectScope.ts` |
 
+## M2 security implementation
+
+- JWT validation: `packages/api/src/middleware/auth.ts`
+- Org membership: `packages/api/src/middleware/orgScope.ts`
+- Project access: `packages/api/src/middleware/projectScope.ts`
+- Explicit role guards: `packages/api/src/middleware/permissions.ts`
+- Caller-scoped membership queries: `packages/api/src/services/access.ts`
+- RLS hardening: `packages/api/migrations/003_tenant_security.sql`
+- HTTP security integration tests: `packages/api/tests/security.test.ts`
+- Executable PostgreSQL RLS tests: `packages/api/tests/rls.test.ts`
+
+Project CRUD and subscription limit routes in the map are planned M3 work.
+
 ## Shared Types
 
 | Type | File |

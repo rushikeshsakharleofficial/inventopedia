@@ -91,3 +91,4 @@ export interface StockMovement {
 }
 
 export type StockMovementType = 'receive' | 'ship' | 'adjust' | 'transfer' | 'return';
+

@@ -13,3 +13,4 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
   business: { maxProjects: 10 },
   enterprise: { maxProjects: null },
 };
+

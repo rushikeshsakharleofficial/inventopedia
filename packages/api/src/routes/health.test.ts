@@ -28,3 +28,4 @@ describe('Health endpoint', () => {
     expect(res.headers.get('x-request-id')).toBe(testId);
   });
 });
+
