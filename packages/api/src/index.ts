@@ -11,3 +11,4 @@ serve({
 });
 
 console.log(`Inventopedia API running at http://localhost:${port}`);
+

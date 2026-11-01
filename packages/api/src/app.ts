@@ -13,7 +13,7 @@ export function createApp() {
   // Global middleware
   app.use('*', logger());
   app.use('*', requestId());
-  app.use('*', errorHandler());
+  app.onError(errorHandler());
 
   // Routes
   app.route(`${API_PREFIX}/health`, healthRoute);

@@ -8,3 +8,4 @@ describe('App', () => {
     expect(screen.getByText('Inventopedia')).toBeDefined();
   });
 });
+

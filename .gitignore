@@ -1,14 +1,61 @@
+# Dependencies and generated output (all workspaces)
 node_modules/
 dist/
-.env
-.env.*
-!.env.example
-*.log
-.DS_Store
-.vscode/
-.idea/
+build/
 coverage/
 *.tsbuildinfo
 .turbo/
-# Added by code-review-graph
+.vite/
+.cache/
+.eslintcache
+
+# Local environment and credentials; keep safe configuration templates
+.env
+.env.*
+!.env.example
+!.env.*.example
+.envrc
+secrets/
+.secrets/
+.aws/
+.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+credentials.json
+credentials.*.json
+service-account*.json
+
+# Local deployment state
+.vercel/
+.supabase/
+supabase/.temp/
+supabase/.branches/
+
+# Generated agent indexes and execution scratch; retain shared hooks/skills
 .code-review-graph/
+.code-outline-graph/
+.superpowers/
+.worktrees/
+worktrees/
+.mcp.json
+.cursor/mcp.json
+.claude/settings.local.json
+.codex/config.local.toml
+
+# Logs, temporary files, and editor/OS state
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+/tmp/
+/temp/
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/

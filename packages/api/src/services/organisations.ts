@@ -1,5 +1,17 @@
 import { getSupabaseAdmin, getSupabaseClient } from '../db/index.js';
-import type { Organisation, OrgMember, OrgRole } from '@inventopedia/shared';
+import { z } from 'zod';
+import { orgRoleSchema, resolveOrgAccess } from './access.js';
+import type { Organisation, OrgMember, OrgRole } from '@shared/types/entities.js';
+
+const orgRowSchema = z.object({
+  id: z.string().uuid(), name: z.string(), slug: z.string(),
+  created_at: z.string(), updated_at: z.string(),
+});
+const orgWithRoleSchema = z.object({ role: orgRoleSchema, organisations: orgRowSchema });
+const memberRowSchema = z.object({
+  id: z.string().uuid(), org_id: z.string().uuid(), user_id: z.string().uuid(),
+  role: orgRoleSchema, created_at: z.string(),
+});
 
 export interface CreateOrgInput {
   name: string;
@@ -54,6 +66,7 @@ export async function createOrganisation(
  * List organisations the user belongs to.
  */
 export async function listUserOrganisations(
+  userId: string,
   accessToken: string
 ): Promise<OrgWithRole[]> {
   const supabase = getSupabaseClient(accessToken);
@@ -66,15 +79,16 @@ export async function listUserOrganisations(
         id, name, slug, created_at, updated_at
       )
     `)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) {
     throw new Error(`Failed to list organisations: ${error.message}`);
   }
 
-  return (memberships || []).map((m: any) => ({
+  return z.array(orgWithRoleSchema).parse(memberships ?? []).map((m) => ({
     ...mapOrg(m.organisations),
-    userRole: m.role as OrgRole,
+    userRole: m.role,
   }));
 }
 
@@ -83,6 +97,7 @@ export async function listUserOrganisations(
  */
 export async function getOrganisation(
   orgId: string,
+  userId: string,
   accessToken: string
 ): Promise<OrgWithRole | null> {
   const supabase = getSupabaseClient(accessToken);
@@ -96,15 +111,16 @@ export async function getOrganisation(
       )
     `)
     .eq('org_id', orgId)
-    .single();
+    .eq('user_id', userId)
+    .maybeSingle();
 
-  if (error || !membership) {
-    return null;
-  }
+  if (error) throw new Error('Failed to fetch organisation');
+  if (!membership) return null;
+  const parsed = orgWithRoleSchema.parse(membership);
 
   return {
-    ...mapOrg((membership as any).organisations),
-    userRole: (membership as any).role as OrgRole,
+    ...mapOrg(parsed.organisations),
+    userRole: parsed.role,
   };
 }
 
@@ -113,19 +129,10 @@ export async function getOrganisation(
  */
 export async function getUserOrgRole(
   orgId: string,
-  userId: string
+  userId: string,
+  accessToken: string
 ): Promise<OrgRole | null> {
-  const supabase = getSupabaseAdmin();
-
-  const { data, error } = await supabase
-    .from('org_members')
-    .select('role')
-    .eq('org_id', orgId)
-    .eq('user_id', userId)
-    .single();
-
-  if (error || !data) return null;
-  return data.role as OrgRole;
+  return (await resolveOrgAccess(orgId, userId, accessToken))?.role ?? null;
 }
 
 /**
@@ -152,7 +159,8 @@ export async function listOrgMembers(
 
 // ---- Mappers ----
 
-function mapOrg(row: any): Organisation {
+function mapOrg(value: unknown): Organisation {
+  const row = orgRowSchema.parse(value);
   return {
     id: row.id,
     name: row.name,
@@ -162,7 +170,8 @@ function mapOrg(row: any): Organisation {
   };
 }
 
-function mapMember(row: any): OrgMember {
+function mapMember(value: unknown): OrgMember {
+  const row = memberRowSchema.parse(value);
   return {
     id: row.id,
     orgId: row.org_id,
@@ -171,3 +180,4 @@ function mapMember(row: any): OrgMember {
     createdAt: row.created_at,
   };
 }
+
