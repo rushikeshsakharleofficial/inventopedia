@@ -3,8 +3,8 @@
 | Milestone | Description | Status |
 |-----------|-------------|--------|
 | M0 | Repository and backend foundation | ✅ Complete |
-| M1 | PostgreSQL control schema | ⬚ Not Started |
-| M2 | Authentication and multi-tenant security | ⬚ Not Started |
+| M1 | PostgreSQL control schema | ✅ Complete |
+| M2 | Authentication and multi-tenant security | 🔄 In Progress |
 | M3 | Subscription limits and project management | ⬚ Not Started |
 | M4 | Inventory database schema | ⬚ Not Started |
 | M5 | Category API | ⬚ Not Started |

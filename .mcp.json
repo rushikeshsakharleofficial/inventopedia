@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "code-outline": {
+      "command": "code-outline-graph",
+      "args": [
+        "serve",
+        "--no-watch",
+        "C:\\Users\\rishi.DESKTOP-3IFP6MN.000\\Desktop\\Projects\\inventopedia"
+      ]
+    }
+  }
+}

@@ -1,0 +1,3 @@
+[mcp_servers.code-outline]
+command = "code-outline-graph"
+args = ["serve", "--no-watch"]

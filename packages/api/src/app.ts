@@ -3,10 +3,12 @@ import { logger } from 'hono/logger';
 import { requestId } from './middleware/requestId.js';
 import { errorHandler } from './middleware/error.js';
 import { healthRoute } from './routes/health.js';
+import { organisationsRoute } from './routes/organisations.js';
 import { API_PREFIX } from '@inventopedia/shared';
+import type { AppEnv } from './types.js';
 
 export function createApp() {
-  const app = new Hono();
+  const app = new Hono<AppEnv>();
 
   // Global middleware
   app.use('*', logger());
@@ -15,6 +17,7 @@ export function createApp() {
 
   // Routes
   app.route(`${API_PREFIX}/health`, healthRoute);
+  app.route(`${API_PREFIX}/organisations`, organisationsRoute);
 
   return app;
 }

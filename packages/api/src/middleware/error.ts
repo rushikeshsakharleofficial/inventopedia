@@ -1,8 +1,9 @@
 import type { MiddlewareHandler } from 'hono';
 import type { ApiError } from '@inventopedia/shared';
+import type { AppEnv } from '../types.js';
 
 /** Global error handler — catches unhandled errors and returns consistent format */
-export function errorHandler(): MiddlewareHandler {
+export function errorHandler(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     try {
       await next();
@@ -15,7 +16,7 @@ export function errorHandler(): MiddlewareHandler {
 
       const body: ApiError = {
         error: status === 500 ? 'Internal server error' : message,
-        code: status === 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR',
+        code: status === 500 ? 'INTERNAL_ERROR' : ((err as { code?: string }).code || 'REQUEST_ERROR'),
         requestId,
       };
 
