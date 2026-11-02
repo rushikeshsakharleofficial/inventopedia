@@ -10,7 +10,7 @@ Enterprise dedicated DB is a future feature (M14).
 - `public` — Supabase Auth tables (managed)
 - `control` — Organisations, org/project memberships, projects, subscriptions, audit logs
 - `private` — Caller-bound RLS helpers; never expose this schema through the Data API
-- `inventory` — Planned categories, templates, items, stock movements
+- `inventory` — Categories, templates, template versions, items and stock movements (migration 005)
 
 ## Migration Strategy
 
@@ -38,7 +38,7 @@ All tenant tables have RLS enabled. Policies check:
 3. Org → project ownership
 4. Project-level role for write operations
 
-## Key Tables (planned)
+## Key Tables
 
 ### control schema
 - `organisations` — tenant boundary
@@ -55,7 +55,8 @@ All tenant tables have RLS enabled. Policies check:
 - `items` — inventory items with JSONB attributes
 - `stock_movements` — transactional stock changes
 
-*Detailed DDL will be added as migrations are created.*
+Detailed DDL lives in versioned migrations. Category/template APIs are implemented
+in M5/M6; item/stock APIs follow in M7/M8.
 
 ## M2 security migrations and setup
 
@@ -103,3 +104,108 @@ constraints, grants, and rollback on isolated PGlite PostgreSQL. These are seria
 tests, not a multi-session concurrency proof. No local PostgreSQL CLI/server was
 available and Docker's engine was unavailable during M3 execution. Hosted migration
 application and PostgREST integration remain unverified and were not executed.
+
+## M4 inventory schema
+
+Apply `005_inventory_schema.sql` after 001–004 as the database owner. It creates
+the `inventory` schema and five RLS-enabled tables. Existing API clients still
+target `control`; future inventory API clients must explicitly target `inventory`.
+When enabling hosted inventory Data API access, expose `inventory` alongside
+`control`, never `private`. No hosted configuration was changed in M4.
+
+| Table | Key protections |
+|-------|-----------------|
+| categories | Same-project parent FK, derived UUID materialized path, cycle rejection |
+| templates | Current version must be published and belong to the same project/template |
+| template_versions | Unique positive version per template, JSONB object schema, published immutability |
+| items | Published pinned version, optional same-project category, JSONB attributes, zero initial quantity |
+| stock_movements | Same-project item, immutable history, project-scoped optional reference uniqueness |
+
+All project links restrict deletion, including organisation deletion that would
+cascade to a populated project. Referenced categories/templates/items cannot be
+deleted. Published versions and movement rows cannot be updated or deleted even
+by the service role. Tenant purge/retention workflows are outside M4.
+
+Composite foreign keys and stored publication markers enforce project/template
+and publication boundaries without relying on a separate application read.
+Identity triggers prevent changing row/project IDs, version numbering/template
+ownership, and an item's pinned version. Normal item/category assignment can change
+within the project; client grants expose only the intended editable columns.
+
+Category paths are slash-delimited UUID paths, including the category itself.
+The database derives them, rejects cycles and updates descendants when a parent
+changes. Hierarchy mutations serialize on the containing project row under
+READ COMMITTED. Indexes cover project/parent/path lookups, version/category/item
+foreign keys and stock actors; item attributes have a GIN index. Multi-session
+hierarchy locking was not exercised by the serialized PGlite tests.
+
+Project viewers can read inventory. Project owner/admin can manage categories,
+templates and draft versions and publish versions. Owner/admin/editor can manage
+item metadata. Org owner/admin inherit project access; other users require both
+org and project membership. Revoked org membership removes inventory access.
+Anonymous clients have no inventory access.
+
+Tenant clients cannot insert movements, edit item quantity or truncate tables.
+Service-role grants allow DML but exclude TRUNCATE; immutability triggers still
+apply. Numeric quantities must be finite. M4 does not define movement sign rules,
+negative-stock policy or a transactional stock writer; those belong to M8.
+Trusted service writes must not be treated as an implemented stock-adjustment API.
+
+`packages/api/tests/inventory-schema.test.ts` applies the full migration chain on
+isolated PGlite and runs 63 schema/access/integrity cases. It uses stub Supabase
+roles/Auth identity; hosted grants/schema exposure and real concurrent sessions
+remain unverified. Existing M2/M3 suites continue to verify their historical
+migration boundaries; the inventory suite verifies the combined 001–005 chain.
+
+## M5 category access
+
+The Category API switches each caller-scoped Supabase client to `inventory` while
+retaining its bearer JWT. It explicitly filters every category query by project_id;
+parent preflight queries use the same scope. Reads permit all project roles;
+creation, editing, moving and deletion require owner/admin. No service-role client
+is used for category data.
+
+M5 reuses migration 005 unchanged. Its composite parent FK and hierarchy triggers
+remain authoritative after application preflight and under races. Listing orders
+by sort_order then id, with strict tuple cursors and optional direct-parent/root
+filters. PostgreSQL 23503 parent failures map to 404; deletion 23001/23503 maps to
+CATEGORY_IN_USE; hierarchy check violations map to CATEGORY_CONFLICT. Unexpected
+database errors remain internal failures.
+
+Real Supabase transport tests verify schema headers, JWT retention, editable
+mutation fields and scoped filters; they mock the network, not a hosted PostgREST
+server. Hosted `inventory` exposure and multi-session hierarchy behavior remain
+unverified. Existing executable SQL tests cover the actual path/RLS constraints.
+
+## M6 template lifecycle (migration 006)
+
+Apply `006_template_builder.sql` after 001–005. It adds no tables and does not
+rewrite existing drafts/publications. Keep inventory/control exposed in hosted
+PostgREST and private unexposed. No hosted migration was executed for M6.
+
+- `inventory.create_template_version(p_project_id,p_template_id,p_schema)` returns
+  one template_versions row. It authorizes owner/admin, locks the scoped template,
+  validates schema and allocates max(existing version)+1 atomically.
+- `inventory.publish_template_version(p_project_id,p_template_id,p_version_id)`
+  returns one template_versions row. It authorizes owner/admin, locks template
+  then scoped version, publishes and changes the current pointer atomically.
+- Both RPCs use SECURITY INVOKER, pinned search paths, caller RLS and authenticated
+  execution only. No service-role client is used by the API.
+- `private.valid_template_schema` validates the strict typed-field contract;
+  `private.template_trim` matches ECMAScript trimming whitespace. Pure helpers
+  have narrowly granted execution for invoker functions/triggers.
+- A publication trigger rejects invalid schema on INSERT/UPDATE with non-null
+  published_at, including direct authenticated writes. Existing M4 immutability,
+  same-project/template FKs and retention remain authoritative.
+
+Version-row locks serialize draft update/delete against publication: an earlier
+edit is validated when publishing; a later edit sees published immutability.
+The parent lock serializes RPC allocation/publication. Direct SQL version inserts
+still rely on the unique version constraint and can cause allocation conflicts.
+Draft numbering may reuse the highest deleted number; it is not an audit sequence.
+The current version follows publication order, which may differ from number order.
+
+Executable tests in `packages/api/tests/template-lifecycle.test.ts` apply the full
+migration chain and prove roles, revoked access, schema validation, lifecycle,
+rollback and grants on PGlite. These are serialized tests, not evidence of actual
+concurrent PostgreSQL sessions; Docker daemon was unavailable during M6 checks.

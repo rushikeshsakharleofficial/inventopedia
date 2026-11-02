@@ -11,12 +11,16 @@ import {
 } from '../services/organisations.js';
 import type { AppEnv } from '../types.js';
 import { projectsRoute } from './projects.js';
+import { categoriesRoute } from './categories.js';
+import { templatesRoute } from './templates.js';
 
 export const organisationsRoute = new Hono<AppEnv>();
 
 // All organisation routes require authentication
 organisationsRoute.use('*', authMiddleware());
 organisationsRoute.route('/', projectsRoute);
+organisationsRoute.route('/', categoriesRoute);
+organisationsRoute.route('/', templatesRoute);
 
 const createOrgSchema = z.object({
   name: z.string().min(1).max(200),

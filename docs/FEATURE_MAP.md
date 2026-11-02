@@ -11,10 +11,10 @@ Maps features to implementation files for targeted navigation.
 | Organisations | `packages/api/src/routes/organisations.ts` | `services/organisations.ts` | `001_control_schema.sql` |
 | Projects | `packages/api/src/routes/projects.ts` | `services/projects.ts` | `002_projects.sql`, `003_tenant_security.sql`, `004_project_management.sql` |
 | Subscription usage | `packages/api/src/routes/projects.ts` | `services/subscriptions.ts` | `001_control_schema.sql`, `004_project_management.sql` |
-| Categories | `packages/api/src/routes/categories.ts` | `services/categories.ts` | `002_inventory_schema.sql` |
-| Templates | `packages/api/src/routes/templates.ts` | `services/templates.ts` | `002_inventory_schema.sql` |
-| Inventory | `packages/api/src/routes/inventory.ts` | `services/inventory.ts` | `002_inventory_schema.sql` |
-| Stock | `packages/api/src/routes/stock.ts` | `services/stock.ts` | `002_inventory_schema.sql` |
+| Categories | `packages/api/src/routes/categories.ts` | `services/categories.ts`, `services/categoryValidation.ts` | `005_inventory_schema.sql` |
+| Templates | `packages/api/src/routes/templates.ts` | `services/templates.ts`, `services/templateVersions.ts` | `005_inventory_schema.sql`, `006_template_builder.sql` |
+| Inventory (API planned M7) | `packages/api/src/routes/inventory.ts` | `services/inventory.ts` | `005_inventory_schema.sql` |
+| Stock (API planned M8) | `packages/api/src/routes/stock.ts` | `services/stock.ts` | `005_inventory_schema.sql` |
 | Audit | `packages/api/src/routes/audit.ts` | `services/audit.ts` | `001_control_schema.sql` |
 
 ## Middleware
@@ -48,8 +48,32 @@ Maps features to implementation files for targeted navigation.
 - HTTP/service boundary tests: `packages/api/tests/projects.test.ts`.
 - Executable quota/rollback tests: `packages/api/tests/project-quota.test.ts`.
 
-Auth route/service, categories, templates, inventory, stock and audit route entries
+Auth route/service, inventory, stock and audit route entries
 above describe planned files. Authentication currently lives in M2 middleware.
+
+## M4 inventory schema implementation
+
+- Five tables, project RLS, explicit column grants, integrity triggers, publication
+  composite foreign keys and indexes: `packages/api/migrations/005_inventory_schema.sql`.
+- Full-chain executable schema/security tests: `packages/api/tests/inventory-schema.test.ts`.
+- Project retention response: `deleteProject` in `packages/api/src/services/projects.ts`,
+  regression tests in `packages/api/tests/projects.test.ts`.
+- Category paths are database-derived; published versions and stock histories are
+  immutable. Tenant quantity/movement writes remain closed pending M8.
+
+## M5 Category API implementation
+
+- Nested project category routes: `packages/api/src/routes/categories.ts`, mounted
+  under authentication in `packages/api/src/routes/organisations.ts`.
+- Caller-scoped CRUD, parent validation and tuple pagination:
+  `packages/api/src/services/categories.ts`.
+- Strict request/result schemas and context-bound cursors:
+  `packages/api/src/services/categoryValidation.ts`.
+- HTTP permission/input/envelope tests: `packages/api/tests/categories.test.ts`.
+- Real Supabase builder with controlled fetch (schema/JWT/filters/bodies/errors):
+  `packages/api/src/services/categories.test.ts`.
+- Hierarchy/RLS SQL proof remains in `packages/api/tests/inventory-schema.test.ts`;
+  M5 reuses migration 005 and adds no new migration.
 
 ## Shared Types
 
@@ -60,3 +84,17 @@ above describe planned files. Authentication currently lives in M2 middleware.
 | Subscriptions | `packages/shared/src/types/subscriptions.ts` |
 
 *Updated as implementation progresses.*
+
+## M6 Template builder backend
+
+- Metadata/version/publication routes: `packages/api/src/routes/templates.ts`.
+- Caller-JWT metadata and version services: `services/templates.ts`,
+  `services/templateVersions.ts`; strict typed fields/cursors: `services/templateValidation.ts`.
+- Shared field contract: `packages/shared/src/types/templates.ts`; reusable Zod
+  schema is exported from the API validation module for M7.
+- Atomic version allocation/publication and direct-publication validation:
+  `packages/api/migrations/006_template_builder.sql`.
+- HTTP access/input tests: `packages/api/tests/templates.test.ts`; real-builder
+  transport tests: `packages/api/src/services/templates.test.ts`; typed-field
+  tests: `packages/api/src/services/templateValidation.test.ts`; executable SQL
+  lifecycle/RLS tests: `packages/api/tests/template-lifecycle.test.ts`.

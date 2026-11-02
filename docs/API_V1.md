@@ -99,7 +99,11 @@ Business 10, Enterprise configured custom limit (null means unlimited). A full
 quota returns 409 / `PROJECT_QUOTA_EXCEEDED`. Missing subscription configuration
 and unexpected database errors return 500 / `INTERNAL_ERROR`. Creation inserts
 the creator's owner membership and audit event in the same transaction.
-Deletion physically removes the project and cascades its project memberships.
+Deletion physically removes an empty project and cascades its project memberships.
+M4 inventory rows restrict project deletion: a project containing retained inventory
+returns 409 / `PROJECT_NOT_EMPTY`. Both PostgreSQL restrict (`23001`) and foreign-key
+(`23503`) conflicts use this envelope without exposing private constraint details.
+Category and template endpoints are implemented in M5/M6; item/stock endpoints remain M7/M8 work.
 
 Subscription usage response:
 
@@ -115,3 +119,120 @@ zero if a downgrade leaves usage above the limit. Unlimited Enterprise returns
 null for both `maxProjects` and `projectsRemaining`. This read is informational;
 creation performs its own locked quota check. There are no subscription-write,
 billing or project-membership management endpoints in M3. Frontend auth UI remains deferred.
+
+### Categories (M5)
+
+Base: `/api/v1/organisations/:orgId/projects/:projectId/categories`.
+All routes require a valid JWT and matching org/project membership.
+
+| Method | Suffix | Access | Response |
+|--------|--------|--------|----------|
+| POST | `/` | Project owner/admin | 201, created category |
+| GET | `/` | Project member | 200, paginated categories |
+| GET | `/:categoryId` | Project member | 200, category |
+| PATCH | `/:categoryId` | Project owner/admin | 200, updated category |
+| DELETE | `/:categoryId` | Project owner/admin | 200, `{ data: { id }, requestId }` |
+
+Org owner/admin inherit corresponding project permissions. Editors/viewers can read
+categories but cannot write. Every query uses the caller JWT, `inventory` schema
+and explicit project filter. Neither path parameters nor request bodies can grant
+access to another organisation or sibling project.
+
+Creation body: `{ "name": "Tools", "parentId": null, "sortOrder": 0 }`.
+Only name is required; parent defaults null and sort order defaults 0. Names are
+trimmed and must contain 1–200 characters. Sort order is an integer from
+-2147483648 through 2147483647. Parent IDs must be UUIDs in the current project.
+PATCH accepts those same fields, at least one present; omitted fields stay unchanged.
+Setting parentId to null moves to root. The database derives the path and updates
+descendant paths transactionally. Client-supplied paths, IDs, project IDs and
+timestamps are rejected. Responses map the shared Category fields:
+`id`, `projectId`, `name`, `parentId`, `path`, `sortOrder`, `createdAt`, `updatedAt`.
+
+List parameters: `limit` (1–100, default 20), opaque `cursor`, and optional
+`parentId=<uuid>` (direct children) or `parentId=root` (roots). No parent filter lists
+all categories in the project. A missing/inaccessible parent filter returns 404.
+Ordering is sortOrder then UUID, both ascending. Lists return
+`{ data, pagination: { cursor, hasMore }, requestId }`; terminal cursor is null.
+Cursors are validated and bound to the project and parent filter; reuse under a
+different scope/filter returns 400. Pagination is not a snapshot: refresh after
+concurrent moves or sort-order changes, which can move records across page boundaries.
+
+Malformed IDs, bodies and cursors return 400 / `VALIDATION_ERROR`; missing or
+inaccessible categories/parents return 404 / `NOT_FOUND`; insufficient roles return
+403 / `FORBIDDEN`. Hierarchy check conflicts such as cycles return
+409 / `CATEGORY_CONFLICT`. Deleting a category referenced by children or items
+returns 409 / `CATEGORY_IN_USE` without cascading. Unexpected database failures
+remain 500 / `INTERNAL_ERROR`. Every error uses the common envelope.
+
+There is no recursive tree, batch reorder, category cascade-delete or frontend
+endpoint in M5. Hosted setup must expose `inventory` alongside `control` while
+keeping `private` unexposed; no hosted configuration has been changed locally.
+
+## M6 Template builder backend
+
+Base: `/api/v1/organisations/:orgId/projects/:projectId/templates`.
+All project members may read; only project owner/admin (including inherited org
+roles) may write. All storage access retains the caller JWT and inventory RLS.
+
+| Method | Suffix | Behavior |
+|--------|--------|----------|
+| POST | `/` | Create metadata `{ name, description? }`; 201 |
+| GET | `/` | Paginated metadata, createdAt/UUID ascending |
+| GET | `/:templateId` | Read metadata/currentVersionId |
+| PATCH | `/:templateId` | Edit name and/or nullable description |
+| DELETE | `/:templateId` | Delete only if no retained versions |
+| POST | `/:templateId/versions` | Create draft `{ schema }`; 201 |
+| GET | `/:templateId/versions` | Paginated versions, number ascending |
+| GET | `/:templateId/versions/:versionId` | Read draft/published version |
+| PATCH | `/:templateId/versions/:versionId` | Replace draft `{ schema }` |
+| DELETE | `/:templateId/versions/:versionId` | Delete draft only |
+| POST | `/:templateId/versions/:versionId/publish` | No body; atomically publish and make current |
+
+Names are trimmed 1–200 characters; descriptions are nullable, at most 2000
+characters, default null on creation. PATCH requires a field. Unknown properties,
+client tenant identity, timestamps, version numbers and current-version setters
+are rejected. IDs must be UUIDs. Lists accept only limit (1–100, default 20) and
+opaque cursor. Cursors bind to project and, for versions, template; they provide
+ordered traversal, not a snapshot under concurrent changes. Timestamp cursors
+preserve PostgreSQL precision.
+
+Schemas are strict `{ fields: [...] }`. An empty array is allowed. Fields have
+`key`, `label`, `type`, `required` (default false). Keys are unique and match
+`^[a-z][a-z0-9_]{0,63}$`; prototype/constructor/__proto__ are forbidden. Labels are
+trimmed, nonempty, at most 200 characters. Types: text, number, boolean, date,
+select. Only select has `options`, a nonempty array of unique trimmed nonempty
+strings, each at most 200 characters. Field/option order is retained. No defaults,
+nesting, computed fields or custom constraints. This defines attribute metadata;
+item-value validation belongs to M7.
+
+Multiple drafts are allowed. Draft allocation locks the template and uses
+max(existing version)+1; deleting the highest draft permits number reuse.
+Publication validates the schema in PostgreSQL, sets a server timestamp and
+updates currentVersionId in one transaction. Repeating publication returns 409;
+publishing an older draft makes it current regardless of version number.
+Published versions cannot be edited/deleted. Existing items keep their original
+version; there is no automatic attribute migration or cascading deletion.
+Historical schemas are returned unchanged, but invalid drafts must be replaced
+before publication. TemplateVersion responses include projectId as well as id,
+templateId, version, schema, publishedAt and createdAt.
+
+Success uses `{ data, requestId }`; lists also include pagination. DELETE returns
+`{ data: { id }, requestId }`. Common errors retain error/code/requestId:
+
+| Status | Code | Condition |
+|--------|------|-----------|
+| 400 | VALIDATION_ERROR | Invalid input or cursor scope |
+| 400 | INVALID_TEMPLATE_SCHEMA | Database publication/schema validation rejected input |
+| 403 | FORBIDDEN | Insufficient role (including database RPC authorization) |
+| 404 | TEMPLATE_NOT_FOUND | Absent/inaccessible template |
+| 404 | TEMPLATE_VERSION_NOT_FOUND | Absent/inaccessible scoped version |
+| 409 | TEMPLATE_IN_USE | Template retains versions/references |
+| 409 | TEMPLATE_VERSION_PUBLISHED | Published version mutation or repeat publication |
+| 409 | TEMPLATE_VERSION_CONFLICT | Version allocation collision/integer exhaustion |
+| 500 | INTERNAL_ERROR | Unexpected/malformed database response |
+
+Authentication/org/project middleware can return its existing 401/403/404 errors
+before template lookup. Direct SQL published_at writes retain M4 permissions but
+now require a valid typed schema; they do not implicitly set currentVersionId.
+HTTP writes use the transactional publication RPC. Hosted PostgREST integration
+and genuine concurrent database sessions remain unverified locally.

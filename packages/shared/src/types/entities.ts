@@ -57,6 +57,7 @@ export interface Template {
 /** Immutable template version */
 export interface TemplateVersion {
   id: string;
+  projectId: string;
   templateId: string;
   version: number;
   schema: Record<string, unknown>; // JSONB attribute definitions

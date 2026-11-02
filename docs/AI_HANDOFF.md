@@ -1,41 +1,99 @@
-# AI Handoff — Inventopedia
+# AI Handoff - Inventopedia
 
-CURRENT_MILESTONE: M3 — Subscription limits and project management
-CURRENT_TASK: Approved M3 backend scope implemented and locally verified
-STATUS: M3 complete locally; lint unavailable, hosted setup and multi-session concurrency unverified
-LAST_VERIFIED_COMMIT: d95561d5814f1edc57cd226829ee3aca6e521b57 (baseline HEAD on main); M3 verified in uncommitted working tree
+CURRENT_MILESTONE: M6 - Template builder backend
+CURRENT_TASK: Approved M6 implemented and locally verified
+STATUS: M6 complete locally; M4/M5 preserved; lint and hosted/concurrency limitations remain
+LAST_VERIFIED_COMMIT: fca1ca91acd6e65a1e3beed6fb1a10164ae430ce (baseline HEAD on main); M4-M6 verified in uncommitted tree
 COMPLETED:
-  - M0: monorepo, docs, Hono API, React frontend, shared types
-  - M1: control schema migration (001_control_schema.sql)
-    - Tables: organisations, org_members, subscriptions, audit_logs
-    - RLS policies for all tables
-    - Helper function: control.create_organisation
-    - updated_at triggers
-  - Auth middleware (Supabase JWT validation)
-  - Validation middleware (Zod body + query)
-  - Organisation service + routes (CRUD)
-  - Audit service (non-blocking writes)
-  - Supabase DB client (admin + user-scoped)
-  - AppEnv type for Hono context
-  - Auth guard tests (5 tests)
-  - M2 tenant scope, role guards and RLS security (merged before this session)
-  - M3 project CRUD, cursor pagination, subscription usage and atomic 2/5/10/custom quotas
-  - Migration 004: fixed-tier constraints, Enterprise null limit, locked actor authorization
+  - M0-M3 foundation, tenant security, project CRUD and atomic subscription quotas
+  - M4 inventory schema 005; M5 category CRUD and pagination
+  - M6 template metadata CRUD, typed fields, draft lifecycle and paginated versions
+  - Migration 006: caller-scoped invoker RPCs for atomic allocation/publication;
+    direct-publication schema validation, immutable versions and transactional pointer
+  - Shared field types, strict inputs/results/cursors and caller-JWT inventory access
 FILES_CHANGED:
-  - packages/api/migrations/004_project_management.sql
-  - packages/api/src/routes/{organisations,projects}.ts
-  - packages/api/src/services/{projects,subscriptions}.ts
-  - packages/api/tests/{projects,project-quota,rls}.test.ts
+  - packages/api/migrations/006_template_builder.sql
+  - packages/api/src/routes/{templates,organisations}.ts
+  - packages/api/src/services/{templates,templateVersions,templateValidation}.ts
+  - packages/api/src/services/{templates,templateValidation}.test.ts
+  - packages/api/tests/{templates,template-lifecycle}.test.ts
+  - packages/shared/src/{index.ts,types/entities.ts,types/templates.ts}
   - docs/{API_V1,DATABASE,FEATURE_MAP,ROADMAP,AI_HANDOFF}.md
-  - docs/superpowers/{specs/2026-11-02-m3-projects-design,plans/2026-11-02-m3-projects}.md
-  - Generated tracked .code-outline-graph/index.db-{shm,wal} changed during indexing
-TESTS_PASSED: Fresh 2026-11-02: 140 total (139 API, 1 web), including 42 executable SQL tests; workspace typecheck/build and git diff --check pass
+  - docs/superpowers/{specs/2026-11-02-m6-templates-design,plans/2026-11-02-m6-templates}.md
+  - Pre-existing M4/M5 dirty files and generated tracked index sidecar remain
+TESTS_PASSED: Fresh 2026-11-02: 402 workspace tests (401 API, 1 web); typecheck/build pass. M6: 30 validation, 27 transport, 34 HTTP, 31 SQL lifecycle tests. Whitespace check passes.
 TESTS_FAILED: No application tests failed in final run; npm run lint fails because eslint is not installed
-UNCOMMITTED_CHANGES: All M3 implementation/docs local-only plus generated tracked index sidecars; no commits or pushes
-BLOCKERS: Missing ESLint dependency/config; hosted setup unverified; Docker daemon unavailable for multi-session PostgreSQL test
-NEXT_EXACT_ACTION: Review/commit the local M3 change when desired; do not begin M4 without user instruction.
-  Hosted setup requires separate authorization; apply 001/002/003/004 in order and expose control, never private.
-IMPORTANT_WARNINGS: Repository previously reported PUBLIC; visibility not rechecked. Confirm privacy before any proprietary-code push. Historical checkpoints below describe earlier states, not the current tree.
+UNCOMMITTED_CHANGES: M4/M5/M6 implementation/tests/docs plus generated index state; local-only, no commit or push
+BLOCKERS: Missing ESLint dependency/config; hosted PostgREST unverified; Docker daemon unavailable for genuine concurrent DB sessions
+NEXT_EXACT_ACTION: Review/commit local M4-M6 work as logical changes when desired; await M7 scope. Hosted use requires migrations 001-006 and control/inventory exposure, never private.
+IMPORTANT_WARNINGS: Repository previously reported PUBLIC; visibility not rechecked. Confirm privacy before proprietary-code push. No hosted migration/deployment authorised or executed. Historical checkpoints below describe earlier states.
+
+M6_EXECUTION_CHECKPOINT (2026-11-02):
+  - User approved the typed-field design; executed inline on main, preserving M4/M5.
+  - Observed missing validation/service modules, missing migration and 30 absent-route
+    test failures before implementation. Final M6 focused coverage: 122 tests.
+  - Independent read-only review found no Critical/Important issues. Added SQL
+    regressions for same-project wrong-template version, publication order and
+    integer exhaustion; all pass. Review graph stalled; outline/source fallback used.
+  - Final full suite: 401 API + 1 web pass; workspace typecheck/build pass. Lint
+    remains blocked by missing ESLint. Logs: ignored .m6-{test,build,lint}-results.log.
+  - Code outline refreshed successfully. SQL tests are serialized PGlite; transport
+    tests use real Supabase builders with controlled fetch, not hosted PostgREST.
+  - No new dependencies, quotas, frontend, item/stock API, hosted actions or push.
+    No commit: existing M4/M5 share mount/docs; do not accidentally bundle their work.
+
+M5_EXECUTION_CHECKPOINT (2026-11-02):
+  - User approved design; executed inline on main, preserving M4. No new migration,
+    dependency, environment variable, stock/template API, frontend or hosted change.
+  - Observed 39 missing-route failures before implementation; 43 route tests now pass.
+    Added 31 real-Supabase-builder tests with controlled fetch: inventory schema,
+    JWT retention, scoped query/body emission, tuple paging, parents and error mapping.
+  - Reused M4 hierarchy triggers/RLS; caller preflight does not replace DB checks.
+    Cursors bind validated numeric/UUID tuples to project and parent filter; paging
+    is not a snapshot during concurrent moves/reordering (documented in API_V1).
+  - Independent read-only review: no Critical/Important findings. Fixed weak cursor
+    injection fixture and added malformed list/delete response cases plus HTTP
+    cursor-scope rejection coverage; final full suite passes 279 API + 1 web.
+  - Workspace typecheck/build pass; lint fails in API/web because eslint is missing.
+    Ignored .m5-{test,build}-results.log retain command output. Outline refresh passes;
+    review graph timed out and outline/source fallback was used.
+  - Hosted PostgREST/schema exposure and genuine concurrent DB sessions remain
+    unverified; no commit, push, deployment or hosted migration executed.
+
+M5_DESIGN_CHECKPOINT (2026-11-02):
+  - User requested M5. Read handoff, feature map, roadmap and relevant category
+    schema/client/route evidence. Graph search empty; outline/source fallback used.
+  - Main remains at fca1ca9 with M4 uncommitted changes preserved. Do not repeat M4.
+  - Proposed category CRUD, parent-filtered pagination, role guards and caller-JWT
+    inventory queries in docs/superpowers/specs/2026-11-02-m5-categories-design.md.
+  - Only design/handoff documentation changed this checkpoint; no source edits,
+    test reruns, commit, push or hosted actions. Prior M4 verification stays historical.
+
+M4_EXECUTION_CHECKPOINT (2026-11-02):
+  - User approved design. Implemented inline on main; no dependencies added.
+  - Added 005 inventory schema, five RLS tables, composite same-project/publication
+    FKs, explicit column grants, hierarchy/path and identity/immutability triggers.
+  - Stock tenant writes remain closed; no inventory API, stock writer or UI added.
+  - Populated project deletion maps 23001/23503 to 409 PROJECT_NOT_EMPTY. Empty
+    project deletion retains M3 behavior. Published/stock retention has no purge API.
+  - Observed missing-schema test fail, then schema suite pass. Observed both new
+    project-conflict mappings return 500 before fix and 409 after fix.
+  - Independent read-only review found no Critical/Important issues; suggested
+    same-project/different-template current-version regression added and passed.
+  - Final npm.cmd run test: 205 API + 1 web pass; typecheck/build pass. Lint fails
+    because eslint is missing. Logs: ignored .m4-{test,build}-results.log.
+  - Outline index refreshed successfully with PYTHONIOENCODING=utf-8. Graph
+    tests_for timed out; reviewer graph lacked SQL nodes; outline/source fallback used.
+  - PGlite checks are serialized. Hosted schema exposure/grants and concurrent
+    hierarchy moves remain unverified; no hosted setup, commit, push or deployment.
+
+M4_DESIGN_CHECKPOINT (2026-11-02):
+  - User requested M4. Read handoff, feature map, roadmap, architecture, database
+    docs and shared inventory entities; graph search empty, outline/source used.
+  - Git main at fca1ca9, clean starting tree. M3 is already committed; do not repeat it.
+  - Prepared proposed 005 inventory schema, RLS/integrity tests, and a narrow
+    project-delete conflict response for inventory retention. No product code yet.
+  - Changed documentation only; application tests not rerun; no commits/pushes.
 
 M3_EXECUTION_CHECKPOINT (2026-11-02):
   - User approved design. Implemented inline on main; no dependencies installed.
@@ -119,3 +177,25 @@ GIT_HYGIENE_CHECKPOINT (2026-11-01):
     template paths stay trackable; all three removed-from-index local files exist.
     git ls-files confirms those paths are no longer tracked. Ignore-file whitespace
     check passes. No application code changed; application tests were not repeated.
+
+M6_DISCOVERY_CHECKPOINT (2026-11-02):
+  - User requested M6 (Template builder backend). Read current roadmap, feature
+    map, handoff, shared types and migration 005 template/version constraints.
+  - Main at fca1ca9; existing local M4/M5 changes preserved. Graph template
+    search returned no nodes; outline and targeted source fallback used.
+  - Existing schema supports draft versions, immutable publication and a
+    same-template published current-version pointer; field-definition contract
+    remains unspecified. Clarify typed builder versus arbitrary JSON schema.
+  - No product code, tests, commits, pushes or hosted actions in this checkpoint.
+  - NEXT_EXACT_ACTION: settle M6 field contract, propose approach and write design
+    for approval before implementation; previous test results remain historical.
+
+M6_DESIGN_CHECKPOINT (2026-11-02):
+  - User accepted recommended typed fields. Proposed full M6 design at
+    docs/superpowers/specs/2026-11-02-m6-templates-design.md.
+  - Covers metadata CRUD, typed draft versions, atomic allocation/publication,
+    database publication validation, caller-JWT RLS and focused verification.
+  - Read-only builder review: nothing important left unanswered before planning.
+  - Design awaits approval; product implementation not started. Documentation
+    whitespace check passes; no application tests rerun, commit, push or hosted work.
+  - NEXT_EXACT_ACTION: obtain design approval, then writing-plans and implementation.

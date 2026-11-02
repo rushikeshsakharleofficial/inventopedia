@@ -91,6 +91,11 @@ export async function updateProject(
 export async function deleteProject(orgId: string, projectId: string, accessToken: string): Promise<{ id: string }> {
   const { data, error } = await getSupabaseClient(accessToken).from('projects').delete()
     .eq('org_id', orgId).eq('id', projectId).select('id').maybeSingle();
+  if (error?.code === '23001' || error?.code === '23503') {
+    throw Object.assign(new Error('Project contains retained inventory records'), {
+      status: 409, code: 'PROJECT_NOT_EMPTY',
+    });
+  }
   if (error) throw new Error('Failed to delete project');
   if (!data) notFound();
   return z.object({ id: z.string().uuid() }).parse(data);

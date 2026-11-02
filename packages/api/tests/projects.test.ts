@@ -13,6 +13,7 @@ const base = `/api/v1/organisations/${orgId}`;
 type Row = Record<string, unknown>;
 let tables: Record<string, Row[]>;
 let failure: string | null;
+let deleteError: { code: string; message: string } | null;
 let rpcError: { code: string; message: string } | null;
 let rpcData: unknown;
 let rpc: ReturnType<typeof vi.fn>;
@@ -26,6 +27,7 @@ function query(table: string) {
   let remove = false;
   let sorted = false;
   const result = () => {
+    if (remove && deleteError) return { data: [], count: 0, error: deleteError };
     let rows = (tables[table] ?? []).filter((row) => predicates.every((test) => test(row)));
     const count = rows.length;
     if (sorted) rows = [...rows].sort((a, b) => String(a.id).localeCompare(String(b.id)));
@@ -52,6 +54,7 @@ function query(table: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   failure = null;
+  deleteError = null;
   rpcError = null;
   rpcData = projectId;
   tables = {
@@ -179,6 +182,23 @@ describe('M3 projects API', () => {
   it('allows org owner deletion', async () => {
     expect((await request(`/projects/${projectId}`, 'DELETE')).status).toBe(200);
     expect(tables.projects).toEqual([]);
+  });
+
+  it.each(['23001', '23503'])('maps project retention SQLSTATE %s to a safe conflict', async (code) => {
+    deleteError = { code, message: 'private foreign key details' };
+    const res = await request(`/projects/${projectId}`, 'DELETE');
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body).toMatchObject({ code: 'PROJECT_NOT_EMPTY', requestId: 'm3-test' });
+    expect(JSON.stringify(body)).not.toContain('private foreign key details');
+    expect(tables.projects).toHaveLength(1);
+  });
+
+  it('keeps unexpected deletion failures internal', async () => {
+    deleteError = { code: 'XX000', message: 'private failure' };
+    const res = await request(`/projects/${projectId}`, 'DELETE');
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ code: 'INTERNAL_ERROR' });
   });
 
   it.each(['admin', 'member'])('denies project deletion by org %s even if project owner', async (role) => {
