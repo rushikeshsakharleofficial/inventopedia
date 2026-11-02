@@ -10,11 +10,13 @@ import {
   listOrgMembers,
 } from '../services/organisations.js';
 import type { AppEnv } from '../types.js';
+import { projectsRoute } from './projects.js';
 
 export const organisationsRoute = new Hono<AppEnv>();
 
 // All organisation routes require authentication
 organisationsRoute.use('*', authMiddleware());
+organisationsRoute.route('/', projectsRoute);
 
 const createOrgSchema = z.object({
   name: z.string().min(1).max(200),

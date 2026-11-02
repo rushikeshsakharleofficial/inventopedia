@@ -58,7 +58,7 @@ must be UUIDs (400 / `VALIDATION_ERROR`). Invisible or inaccessible scope return
 404 / `NOT_FOUND`, insufficient role returns 403 / `FORBIDDEN`, and database or
 unexpected failures return 500 / `INTERNAL_ERROR`. All use the common error format.
 
-### M2 middleware for future project routes
+### Tenant scope middleware
 
 Use `authMiddleware()` before `orgScope()` / `projectScope()`. Scope IDs come
 from `:orgId` / `:projectId` route parameters. A nested org and project must agree.
@@ -68,4 +68,50 @@ Org roles: owner, admin, member. Project roles: owner, admin, editor, viewer.
 Owner/admin org roles inherit corresponding project roles; other users require
 both org and explicit project membership. Guards use explicit allowed-role lists.
 
-Project CRUD, subscription limit APIs, and frontend auth UI remain deferred.
+### Projects (M3)
+
+All paths below begin with `/api/v1/organisations/:orgId` and require a valid JWT.
+
+| Method | Suffix | Access | Response |
+|--------|--------|--------|----------|
+| POST | `/projects` | Org owner/admin | 201, created project |
+| GET | `/projects` | Org member; RLS filters visible projects | 200, paginated projects |
+| GET | `/projects/:projectId` | Project member or org owner/admin | 200, project |
+| PATCH | `/projects/:projectId` | Project owner/admin or org owner/admin | 200, updated project |
+| DELETE | `/projects/:projectId` | Org owner only | 200, `{ data: { id }, requestId }` |
+| GET | `/subscription` | Org owner/admin | 200, subscription usage |
+
+Creation accepts `{ name, description? }`. Name is trimmed, 1–200 characters;
+description is nullable and at most 2000 characters. PATCH accepts those same
+fields with at least one present; `{ description: null }` clears the description.
+Unknown fields, including actor, role and tenant IDs in the body, are rejected.
+The server derives the actor from the validated JWT. Project objects contain
+`id`, `orgId`, `name`, `description`, `createdAt`, and `updatedAt`.
+
+Listing accepts `limit` (integer 1–100, default 20) and the opaque `cursor` returned
+by the preceding page. Projects are ordered by immutable UUID ascending, not by
+creation time. Responses contain `{ data, pagination: { cursor, hasMore }, requestId }`;
+the terminal cursor is null. Invalid cursors/query values return 400. Concurrent
+inserts with IDs before the cursor are only visible on a fresh listing.
+
+Creation enforces the organisation limit transactionally: Free 2, Starter 5,
+Business 10, Enterprise configured custom limit (null means unlimited). A full
+quota returns 409 / `PROJECT_QUOTA_EXCEEDED`. Missing subscription configuration
+and unexpected database errors return 500 / `INTERNAL_ERROR`. Creation inserts
+the creator's owner membership and audit event in the same transaction.
+Deletion physically removes the project and cascades its project memberships.
+
+Subscription usage response:
+
+```json
+{
+  "data": { "tier": "free", "maxProjects": 2, "projectsUsed": 1, "projectsRemaining": 1 },
+  "requestId": "uuid"
+}
+```
+
+Usage counts all projects in the organisation; remaining capacity is clamped to
+zero if a downgrade leaves usage above the limit. Unlimited Enterprise returns
+null for both `maxProjects` and `projectsRemaining`. This read is informational;
+creation performs its own locked quota check. There are no subscription-write,
+billing or project-membership management endpoints in M3. Frontend auth UI remains deferred.

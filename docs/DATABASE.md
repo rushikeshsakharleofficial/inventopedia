@@ -82,3 +82,24 @@ the JWT and permissions before supplying the actor ID.
 `npm run test:api` executes the migration/RLS suite on ephemeral PGlite PostgreSQL,
 with stub Supabase roles and `auth.uid()`. It needs no credentials or hosted DB.
 It does not verify hosted PostgREST schema exposure or Supabase Auth configuration.
+
+## M3 project management migration
+
+Apply `004_project_management.sql` after 001/002/003 as the database owner.
+It permits a null Enterprise project limit and constrains fixed-tier limits to
+Free 2, Starter 5, Business 10. Enterprise accepts a configured nonnegative integer
+or null (unlimited). Existing inconsistent subscriptions cause migration failure;
+the migration does not silently rewrite subscription data.
+
+The service-only `control.create_project` RPC locks the subscription row, then
+checks and share-locks the actor's org owner/admin membership. Under the Data API's
+READ COMMITTED isolation, its subsequent project count sees committed creation
+from the preceding lock holder. Project insertion, owner membership, and audit
+insertion commit or roll back together. Other client writes cannot bypass this
+creation path. Project reads/edits/deletes continue using caller JWTs and M2 RLS.
+
+`packages/api/tests/project-quota.test.ts` executes quota boundaries, actor checks,
+constraints, grants, and rollback on isolated PGlite PostgreSQL. These are serialized
+tests, not a multi-session concurrency proof. No local PostgreSQL CLI/server was
+available and Docker's engine was unavailable during M3 execution. Hosted migration
+application and PostgREST integration remain unverified and were not executed.

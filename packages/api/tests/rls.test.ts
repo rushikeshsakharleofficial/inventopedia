@@ -20,7 +20,7 @@ beforeAll(async () => {
     GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
     GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated, service_role;
   `);
-  for (const name of ['001_control_schema.sql', '002_projects.sql', '003_tenant_security.sql']) {
+  for (const name of ['001_control_schema.sql', '002_projects.sql', '003_tenant_security.sql', '004_project_management.sql']) {
     const file = new URL(`../migrations/${name}`, import.meta.url);
     await db.exec(readFileSync(file, 'utf8'));
     if (name === '002_projects.sql') {
