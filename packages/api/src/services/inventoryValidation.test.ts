@@ -173,3 +173,4 @@ describe('cursor scope', () => {
     expect(parsed.cursor!.projectId).toBe(projectId);
   });
 });
+

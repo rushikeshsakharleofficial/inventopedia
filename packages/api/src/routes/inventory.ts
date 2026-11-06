@@ -76,3 +76,4 @@ inventoryRoute.delete(item, ...scope, write, validateItemId, async (c) => {
   );
   return c.json({ data, requestId: c.get('requestId') });
 });
+

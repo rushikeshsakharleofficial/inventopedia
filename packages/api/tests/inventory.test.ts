@@ -100,3 +100,4 @@ describe('Inventory routes — route registration', () => {
     expect(res.status).toBe(401);
   });
 });
+
