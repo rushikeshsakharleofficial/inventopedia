@@ -13,7 +13,7 @@ Maps features to implementation files for targeted navigation.
 | Subscription usage | `packages/api/src/routes/projects.ts` | `services/subscriptions.ts` | `001_control_schema.sql`, `004_project_management.sql` |
 | Categories | `packages/api/src/routes/categories.ts` | `services/categories.ts`, `services/categoryValidation.ts` | `005_inventory_schema.sql` |
 | Templates | `packages/api/src/routes/templates.ts` | `services/templates.ts`, `services/templateVersions.ts` | `005_inventory_schema.sql`, `006_template_builder.sql` |
-| Inventory (API planned M7) | `packages/api/src/routes/inventory.ts` | `services/inventory.ts` | `005_inventory_schema.sql` |
+| Inventory | `packages/api/src/routes/inventory.ts` | `services/inventory.ts`, `services/inventoryValidation.ts` | `005_inventory_schema.sql` |
 | Stock (API planned M8) | `packages/api/src/routes/stock.ts` | `services/stock.ts` | `005_inventory_schema.sql` |
 | Audit | `packages/api/src/routes/audit.ts` | `services/audit.ts` | `001_control_schema.sql` |
 
@@ -98,3 +98,20 @@ above describe planned files. Authentication currently lives in M2 middleware.
   transport tests: `packages/api/src/services/templates.test.ts`; typed-field
   tests: `packages/api/src/services/templateValidation.test.ts`; executable SQL
   lifecycle/RLS tests: `packages/api/tests/template-lifecycle.test.ts`.
+
+## M7 Inventory CRUD API
+
+- Project-scoped item routes: `packages/api/src/routes/inventory.ts`, mounted
+  under authentication in `packages/api/src/routes/organisations.ts`.
+- Caller-JWT CRUD, template-schema attribute validation and cursor pagination:
+  `packages/api/src/services/inventory.ts`.
+- Strict input/result schemas, attribute-vs-template validation, cursor scope:
+  `packages/api/src/services/inventoryValidation.ts`.
+- Editor+ writes, all project-member reads; filters by categoryId, templateId, search.
+- Attribute validation against published template version typed fields (text/number/
+  boolean/date/select). Partial updates merge with existing then revalidate.
+- Template version enforcement: only published versions accepted. Version immutable.
+- Item deletion blocked when stock movements exist (FK restrict → 409 ITEM_IN_USE).
+- Validation unit tests: `packages/api/src/services/inventoryValidation.test.ts`.
+- HTTP auth/route tests: `packages/api/tests/inventory.test.ts`.
+- M7 adds no new migration; reuses tables from 005_inventory_schema.sql.

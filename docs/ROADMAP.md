@@ -9,7 +9,7 @@
 | M4 | Inventory database schema | ✅ Complete (local schema verification) |
 | M5 | Category API | ✅ Complete (local API verification) |
 | M6 | Template builder backend | ✅ Complete (local backend verification) |
-| M7 | Inventory CRUD API | ⬚ Not Started |
+| M7 | Inventory CRUD API | ✅ Complete |
 | M8 | Stock transaction API | ⬚ Not Started |
 | M9 | Attachments, audit and dashboard | ⬚ Not Started |
 | M10 | Complete API v1 contracts and tests | ⬚ Not Started |
