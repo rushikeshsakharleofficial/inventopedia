@@ -9,16 +9,20 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "openapi": "tsx scripts/generate-openapi.ts",
+    "openapi:check": "tsx scripts/generate-openapi.ts --check"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
     "@inventopedia/shared": "*",
     "@supabase/supabase-js": "^2.46.0",
     "hono": "^4.6.0",
-    "zod": "^3.23.0"
+    "zod": "^3.23.0",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.1.0",
     "@electric-sql/pglite": "^0.5.14",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",

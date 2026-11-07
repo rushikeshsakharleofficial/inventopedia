@@ -39,7 +39,7 @@ function mutationError(error: { code: string; message: string } | null, deleting
   // FK violation — template version or category not found / not in same project
   if (error.code === '23503') {
     if (deleting) {
-      throw Object.assign(new Error('Item has stock movements and cannot be deleted'), { status: 409, code: 'ITEM_IN_USE' });
+      throw Object.assign(new Error('Item has retained stock or attachment references and cannot be deleted'), { status: 409, code: 'ITEM_IN_USE' });
     }
     throw Object.assign(new Error('Referenced template version or category not found in this project'), { status: 404, code: 'NOT_FOUND' });
   }
@@ -49,7 +49,7 @@ function mutationError(error: { code: string; message: string } | null, deleting
   }
   // Restrict violation (stock_movements reference on delete)
   if (error.code === '23001') {
-    throw Object.assign(new Error('Item has stock movements and cannot be deleted'), { status: 409, code: 'ITEM_IN_USE' });
+    throw Object.assign(new Error('Item has retained stock or attachment references and cannot be deleted'), { status: 409, code: 'ITEM_IN_USE' });
   }
   // Immutability trigger (55000)
   if (error.code === '55000') {

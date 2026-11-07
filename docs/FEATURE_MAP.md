@@ -14,8 +14,9 @@ Maps features to implementation files for targeted navigation.
 | Categories | `packages/api/src/routes/categories.ts` | `services/categories.ts`, `services/categoryValidation.ts` | `005_inventory_schema.sql` |
 | Templates | `packages/api/src/routes/templates.ts` | `services/templates.ts`, `services/templateVersions.ts` | `005_inventory_schema.sql`, `006_template_builder.sql` |
 | Inventory | `packages/api/src/routes/inventory.ts` | `services/inventory.ts`, `services/inventoryValidation.ts` | `005_inventory_schema.sql` |
-| Stock (API planned M8) | `packages/api/src/routes/stock.ts` | `services/stock.ts` | `005_inventory_schema.sql` |
-| Audit | `packages/api/src/routes/audit.ts` | `services/audit.ts` | `001_control_schema.sql` |
+| Stock | `packages/api/src/routes/stock.ts` | `services/stock.ts`, `services/stockValidation.ts` | `005_inventory_schema.sql`, `007_stock_transactions.sql` |
+| Audit/dashboard | `packages/api/src/routes/observability.ts` | `services/observability.ts` | `008_project_observability.sql` |
+| Attachments | `packages/api/src/routes/attachments.ts` | `services/attachments.ts` | `009_attachments.sql` |
 
 ## Middleware
 
@@ -48,8 +49,8 @@ Maps features to implementation files for targeted navigation.
 - HTTP/service boundary tests: `packages/api/tests/projects.test.ts`.
 - Executable quota/rollback tests: `packages/api/tests/project-quota.test.ts`.
 
-Auth route/service, inventory, stock and audit route entries
-above describe planned files. Authentication currently lives in M2 middleware.
+Authentication lives in M2 middleware; separate auth route/service entries remain
+planned. Inventory, stock, project audit/dashboard and attachments are implemented.
 
 ## M4 inventory schema implementation
 
@@ -59,7 +60,7 @@ above describe planned files. Authentication currently lives in M2 middleware.
 - Project retention response: `deleteProject` in `packages/api/src/services/projects.ts`,
   regression tests in `packages/api/tests/projects.test.ts`.
 - Category paths are database-derived; published versions and stock histories are
-  immutable. Tenant quantity/movement writes remain closed pending M8.
+  immutable. Tenant quantity/movement writes use the authorized M8/M10 RPC.
 
 ## M5 Category API implementation
 
@@ -115,3 +116,15 @@ above describe planned files. Authentication currently lives in M2 middleware.
 - Validation unit tests: `packages/api/src/services/inventoryValidation.test.ts`.
 - HTTP auth/route tests: `packages/api/tests/inventory.test.ts`.
 - M7 adds no new migration; reuses tables from 005_inventory_schema.sql.
+
+## M9/M10 implementation
+
+- Attachments: `packages/api/src/routes/attachments.ts`, `services/attachments.ts`;
+  migration `009_attachments.sql` integrates metadata and private Supabase Storage policies.
+- Project audit/dashboard: `routes/observability.ts`, `services/observability.ts`;
+  migration `008_project_observability.sql` adds audit triggers and dashboard RPC.
+- API contracts: `packages/api/src/contracts.ts`, `middleware/responseContract.ts`,
+  `scripts/generate-openapi.ts`, `docs/openapi.json`.
+- Stock direct-RPC authorization: migration `010_stock_authorization.sql`.
+- Verification: `tests/m9-routes.test.ts`, `tests/observability-schema.test.ts`,
+  `tests/contracts.test.ts`, `src/services/attachments.test.ts`.

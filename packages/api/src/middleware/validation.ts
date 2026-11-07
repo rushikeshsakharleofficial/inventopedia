@@ -12,7 +12,6 @@ export function validateBody<T extends ZodSchema>(schema: T): MiddlewareHandler<
       const body = await c.req.json();
       const parsed = schema.parse(body);
       c.set('validatedBody', parsed);
-      await next();
     } catch (err) {
       if (err instanceof ZodError) {
         return c.json(
@@ -37,6 +36,7 @@ export function validateBody<T extends ZodSchema>(schema: T): MiddlewareHandler<
         400
       );
     }
+    await next();
   };
 }
 
@@ -50,7 +50,6 @@ export function validateQuery<T extends ZodSchema>(schema: T): MiddlewareHandler
       const query = c.req.query();
       const parsed = schema.parse(query);
       c.set('validatedQuery', parsed);
-      await next();
     } catch (err) {
       if (err instanceof ZodError) {
         return c.json(
@@ -68,5 +67,6 @@ export function validateQuery<T extends ZodSchema>(schema: T): MiddlewareHandler
       }
       throw err;
     }
+    await next();
   };
 }

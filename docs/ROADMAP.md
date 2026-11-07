@@ -10,9 +10,9 @@
 | M5 | Category API | ✅ Complete (local API verification) |
 | M6 | Template builder backend | ✅ Complete (local backend verification) |
 | M7 | Inventory CRUD API | ✅ Complete |
-| M8 | Stock transaction API | ⬚ Not Started |
-| M9 | Attachments, audit and dashboard | ⬚ Not Started |
-| M10 | Complete API v1 contracts and tests | ⬚ Not Started |
+| M8 | Stock transaction API | ✅ Complete |
+| M9 | Attachments, audit and dashboard | ✅ Complete (local backend verification) |
+| M10 | Complete API v1 contracts and tests | ✅ Complete (local contract verification) |
 | M11 | Security, performance and CI | ⬚ Not Started |
 | M12 | Vercel deployment integration | ⬚ Not Started |
 | M13 | Billing (when approved) | ⬚ Not Started |
@@ -30,7 +30,7 @@
 
 ## M2 — Authentication and Multi-Tenant Security
 
-M2 is complete. User approved M3–M6 on 2026-11-02; M7 and later remain deferred.
+M2 is complete. Subsequent local backend work now extends through M10.
 
 - [x] Validate Supabase access tokens and attach authenticated user context
 - [x] Resolve organisation membership for the authenticated caller
@@ -76,7 +76,8 @@ UI and project membership-management endpoints were outside this milestone.
 
 M4 is verified locally. Hosted migrations and concurrent PostgreSQL sessions remain
 unverified; lint still fails because ESLint is missing. Category API is implemented
-in M5; template/item/stock APIs, frontend and transactional stock adjustment remain deferred.
+in M5; template/item/stock APIs and transactional stock writes now exist through M10.
+Frontend feature UI remains deferred.
 
 ## M5 — Category API
 
@@ -102,7 +103,28 @@ hosted schema exposure and concurrent hierarchy transactions remain unverified.
 - [x] HTTP role/input tests, real-client transport tests and executable SQL lifecycle tests
 - [x] Workspace tests, typecheck/build, independent review and documentation
 
-M6 is complete locally; all changes remain uncommitted alongside M4/M5. Missing
-ESLint still blocks lint. Hosted PostgREST and true concurrent PostgreSQL sessions
-remain unverified; no hosted migration, deployment or push was performed. The
-foundation stability gate and M7 are not implicitly approved by M6 completion.
+M6 is committed in the existing baseline. Missing ESLint still blocks lint.
+Hosted PostgREST and true concurrent PostgreSQL sessions remain unverified.
+The foundation stability gate remains subject to explicit user approval.
+
+## M9 — Attachments, Audit and Dashboard
+
+- [x] Private attachment metadata, authenticated direct upload, signed download and retryable deletion
+- [x] Project/item Storage isolation and role policies; retained deletion tombstones
+- [x] Transactional project audit triggers and administrator-only paginated audit API
+- [x] Caller-scoped dashboard counts with project role checks
+- [x] Executable SQL role/isolation tests, HTTP tests and real-client transport tests
+- [x] Final workspace tests, typecheck, build and documentation review (lint unavailable)
+
+## M10 — API v1 Contracts and Tests
+
+- [x] OpenAPI 3.1 artifact and public endpoint, derived from runtime request/response contracts
+- [x] Method/path parity and formal OpenAPI validation tests
+- [x] Successful response Zod validation and common unknown-route errors
+- [x] Validation middleware exception boundaries
+- [x] Stock RPC schema fix and direct-database actor/role authorization regression tests
+- [x] Final workspace tests, typecheck, build and documentation review (lint unavailable)
+
+M9/M10 are local backend work. Hosted Supabase Storage and migrations are not
+applied or verified. M11 dependency/security/CI work and M12 deployment remain
+separate. The foundation stability gate has not been approved.

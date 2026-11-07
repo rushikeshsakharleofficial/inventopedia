@@ -103,7 +103,7 @@ Deletion physically removes an empty project and cascades its project membership
 M4 inventory rows restrict project deletion: a project containing retained inventory
 returns 409 / `PROJECT_NOT_EMPTY`. Both PostgreSQL restrict (`23001`) and foreign-key
 (`23503`) conflicts use this envelope without exposing private constraint details.
-Category and template endpoints are implemented in M5/M6; item/stock endpoints remain M7/M8 work.
+Category, template, item and stock endpoints are implemented locally through M8.
 
 Subscription usage response:
 
@@ -236,3 +236,125 @@ before template lookup. Direct SQL published_at writes retain M4 permissions but
 now require a valid typed schema; they do not implicitly set currentVersionId.
 HTTP writes use the transactional publication RPC. Hosted PostgREST integration
 and genuine concurrent database sessions remain unverified locally.
+
+### Inventory items (M7)
+
+Base: `/api/v1/organisations/:orgId/projects/:projectId/items`.
+GET collection/single item requires project membership. POST, PATCH and DELETE
+require project owner/admin/editor. Creation returns 201; other successes return
+200. All responses include `requestId` and the common data envelope.
+
+POST accepts `{ templateVersionId, name, categoryId?, sku?, attributes? }`.
+Only a published template version in this project is accepted. Attribute keys,
+required fields and values are checked against that immutable version's schema.
+PATCH accepts name, categoryId, sku and attributes; attributes merge with stored
+values before validation. At least one field is required. Template version and
+quantity cannot be changed through item writes. Unknown fields are rejected.
+DELETE returns `{ data: { id }, requestId }`; retained stock or attachment
+references can prevent deletion. Retained stock/attachment references return
+409 / `ITEM_IN_USE`.
+
+List accepts limit, cursor, categoryId, templateId and search (name/SKU).
+Ordering is createdAt descending, UUID ascending. Cursors bind project and
+category/template filters. Search is not bound by the existing cursor format;
+start a fresh listing when changing search. See OpenAPI for exact field bounds.
+
+### Stock transactions (M8/M10)
+
+Base: `/api/v1/organisations/:orgId/projects/:projectId/stock/movements`.
+GET collection and `/:movementId` require project membership. POST requires
+owner/admin/editor and returns 201. Movement history has no edit/delete endpoint.
+POST accepts `{ itemId, type, quantity, reason?, referenceId? }`; quantity must be
+positive and finite. Receive, return and adjust increase quantity; ship and
+transfer decrease it. Transfer records an outbound movement only; it does not
+credit a destination. Adjust currently supports increases only. A decrease uses
+ship. No negative stock is permitted.
+
+A locked database transaction writes the movement and item quantity together.
+Migration 010 additionally checks JWT actor, project role and membership for
+calls made directly through Supabase. Actor impersonation is forbidden. The RPC
+lives in `inventory`, not `control`. Duplicate non-null referenceId values within
+a project return 409 / `DUPLICATE_REFERENCE`; insufficient stock returns
+409 / `INSUFFICIENT_STOCK`. These conflicts do not change quantity or history.
+POST returns StockMovement fields plus `resultingQuantity`.
+
+List accepts limit, cursor, itemId and type. Ordering is createdAt descending,
+UUID ascending. Cursors bind project/item filters; start a fresh listing when
+changing type. This is pagination, not a snapshot under concurrent writes.
+
+### Attachments (M9)
+
+Base: `/api/v1/organisations/:orgId/projects/:projectId/items/:itemId/attachments`.
+
+| Method | Suffix | Access | Result |
+|--------|--------|--------|--------|
+| POST | `/` | Owner/admin/editor | 201, metadata reservation, bucket and path |
+| GET | `/` | Project member | 200, paginated metadata reservations |
+| GET | `/:attachmentId/download` | Project member | 200, `{ signedUrl }` |
+| DELETE | `/:attachmentId` | Owner/admin/editor | 200, `{ id }` |
+
+POST accepts only `{ filename }` (trimmed, 1–255 characters; no path separators or
+control characters). Item must exist in the same project. Returned metadata uses
+`id`, `project_id`, `item_id`, `filename`, `created_by`, `deleted`, `created_at`.
+The reservation also returns `bucket: "inventory-attachments"` and a generated
+`path` of `projectId/itemId/attachmentId`. Client IDs/actor/path are never accepted.
+
+Upload bytes separately with the authenticated caller's Supabase client:
+`supabase.storage.from(bucket).upload(path, file, { upsert: false })`.
+Uploads require a current writer role and matching active metadata reservation.
+This flow deliberately uses JWT-authenticated uploads, not upload bearer tokens.
+Metadata listings include reservations whose bytes have not yet been uploaded;
+a download before upload returns 404. No file type/size subscription quota is
+invented. Configure Storage file restrictions explicitly for the deployment.
+
+The bucket is private; objects cannot be overwritten through tenant policies.
+Downloads force the stored filename and expire after 60 seconds. A previously
+issued download URL remains usable until expiry, even after role revocation.
+Deletion first tombstones metadata, denying subsequent new uploads/downloads,
+then removes bytes through Storage API. Failed byte cleanup returns 500; retry
+DELETE with the same ID. Tombstones remain for audit and cleanup retries and
+retain the item. A concurrent in-flight upload can leave inaccessible bytes;
+operators must reconcile orphan objects through Storage API, never SQL deletion.
+
+List accepts limit (1–100, default 20) and UUID cursor, ordered UUID ascending.
+Each query filters project/item and excludes tombstones. Cursors are positions,
+not authorization capabilities; changing scope starts a new listing. UUID-order
+pagination can miss concurrent inserts before the cursor.
+
+### Audit and dashboard (M9)
+
+GET `/api/v1/organisations/:orgId/projects/:projectId/audit` requires project
+owner/admin. Returns paginated project audit events with `id`, `project_id`,
+`actor_id` (nullable for maintenance), `action` (insert/update/delete),
+`entity_type`, `entity_id`, `created_at`. Limit/cursor use the same UUID ordering
+as attachments. This endpoint is project-scoped and distinct from existing
+organisation-level `control.audit_logs`.
+
+Database triggers record category, template, version, item, movement and attachment
+metadata mutations in the same transaction. Events contain no attribute values,
+credentials or object URLs. Failed transactions create no events. Tenant roles
+cannot insert, edit or delete events. Storage byte uploads/downloads are not
+metadata mutations and do not generate these events. Earlier records are not
+backfilled. Project audit history retains project references.
+
+GET `/api/v1/organisations/:orgId/projects/:projectId/dashboard` permits all project
+members. Returns `{ data: { items, categories, templates, movements,
+outOfStockItems }, requestId }`. Counts are computed in one caller-scoped SQL
+statement; outOfStockItems counts quantity <= 0. The RPC lives in `public` and
+returns null for inaccessible projects; HTTP scope middleware returns 404 first.
+No valuation, low-stock threshold or cross-project aggregate is implied.
+
+### Machine-readable contracts (M10)
+
+GET `/api/v1/openapi.json` is public and returns OpenAPI 3.1. The checked-in copy
+is `docs/openapi.json`. Generate with `npm run openapi --workspace packages/api`;
+verify with `npm run openapi:check --workspace packages/api`.
+
+Request schemas are shared with route validators. Successful wire responses are
+validated against Zod contracts before return. Invalid successful responses yield
+500 / `INTERNAL_ERROR`; internal details stay out of the response. Contract tests
+verify method/path parity and formally validate OpenAPI with Swagger Parser.
+Unknown routes use 404 / `NOT_FOUND` with the common JSON error envelope.
+OpenAPI represents structural constraints; custom Zod refinements (non-empty
+PATCH, unique field keys/options, attribute typing and cursor scope) also apply.
+No API-managed sign-in or refresh endpoint exists; use Supabase Auth.

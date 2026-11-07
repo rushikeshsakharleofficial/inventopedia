@@ -209,3 +209,30 @@ Executable tests in `packages/api/tests/template-lifecycle.test.ts` apply the fu
 migration chain and prove roles, revoked access, schema validation, lifecycle,
 rollback and grants on PGlite. These are serialized tests, not evidence of actual
 concurrent PostgreSQL sessions; Docker daemon was unavailable during M6 checks.
+
+## M9/M10 migrations and Storage
+
+Apply migrations 008, 009 and 010 after 001–007 in order, as database owner.
+008 creates `inventory.audit_events` and public caller-scoped `project_dashboard`.
+009 requires Supabase's existing `storage.buckets` and `storage.objects`; it
+creates the private `inventory-attachments` bucket and operation-specific object
+policies. Do not expose `private` through PostgREST. Expose `inventory`, `control`
+and `public` to use the documented RPCs and tables. Existing broad Storage
+policies must be reviewed because permissive PostgreSQL policies combine with OR.
+Storage must provide `storage.allow_only_operation` and `storage.allow_any_operation`.
+Upload policies allow authenticated standard uploads only; signed-upload-token
+creation is denied. Tombstoned object SELECT access applies only during Storage
+delete/delete_many operations, preventing cleanup grants from enabling downloads.
+
+Attachment metadata binds project/item composite keys to UUID-only object paths.
+Metadata deletion is a one-way tombstone; object removal uses Storage API. Audit
+and metadata retain their project/item references. Audit triggers record metadata
+mutations without copying sensitive row contents. No historical backfill occurs.
+010 wraps the original stock transaction with JWT actor and writer role checks,
+locks caller memberships against revocation, and revokes access to the internal
+transaction function. Both stock functions live in the inventory schema.
+
+Executable migration tests use ephemeral PGlite and a minimal Storage schema.
+They prove SQL policies and transactional behavior, not hosted Storage service
+behavior or multi-session PostgreSQL races. Hosted migrations, upload/download
+smoke tests and Storage orphan reconciliation remain deployment checks.

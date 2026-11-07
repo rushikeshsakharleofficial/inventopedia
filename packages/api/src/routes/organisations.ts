@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { orgScope } from '../middleware/orgScope.js';
 import { validateBody } from '../middleware/validation.js';
@@ -14,6 +14,10 @@ import { projectsRoute } from './projects.js';
 import { categoriesRoute } from './categories.js';
 import { templatesRoute } from './templates.js';
 import { inventoryRoute } from './inventory.js';
+import { stockRoute } from './stock.js';
+import { observabilityRoute } from './observability.js';
+import { attachmentsRoute } from './attachments.js';
+import { createOrgSchema } from '../contracts.js';
 
 export const organisationsRoute = new Hono<AppEnv>();
 
@@ -23,15 +27,9 @@ organisationsRoute.route('/', projectsRoute);
 organisationsRoute.route('/', categoriesRoute);
 organisationsRoute.route('/', templatesRoute);
 organisationsRoute.route('/', inventoryRoute);
-
-const createOrgSchema = z.object({
-  name: z.string().min(1).max(200),
-  slug: z
-    .string()
-    .min(3)
-    .max(64)
-    .regex(/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/, 'Invalid slug format'),
-});
+organisationsRoute.route('/', stockRoute);
+organisationsRoute.route('/', observabilityRoute);
+organisationsRoute.route('/', attachmentsRoute);
 
 // POST /organisations — create a new organisation
 organisationsRoute.post('/', validateBody(createOrgSchema), async (c) => {
