@@ -6,7 +6,7 @@ describe('App', () => {
   it('shows sign-in and explains missing configuration', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: 'Good to see you.' })).toBeDefined();
-    expect(screen.getByRole('alert').textContent).toContain('Sign-in is not configured');
+    expect(screen.getByRole('alert').textContent).toContain('Sign-in is unavailable');
     expect((screen.getByRole('button', { name: /sign in/i }) as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -16,6 +16,12 @@ describe('App', () => {
     expect(password.type).toBe('password');
     fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
     expect(password.type).toBe('text');
+  });
+  it('offers a password reset flow without asking for the current password', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Forgot password?' }));
+    expect(screen.getByRole('heading', { name: 'Reset your password.' })).toBeDefined();
+    expect(screen.queryByLabelText('Password')).toBeNull();
   });
 });
 

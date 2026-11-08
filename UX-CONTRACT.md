@@ -9,9 +9,10 @@ WCAG 2.2 AA.
 
 ## Canonical UI Map
 
-| Capability | Canonical owner | Source | Variants | Verification |
+| Capability | Canonical owner | Source of truth | Allowed variants | Verification |
 |---|---|---|---|---|
 | Select/Listbox | Native select | This contract | native | keyboard |
+| Date | Native date input | This contract | native | keyboard |
 | Form | Shared field and dialog styles | This contract | create / edit | component tests |
 | Scrollbar | Global stylesheet | DESIGN.md | native geometry | browser |
 | Feedback | Shared status region | This contract | success / error | live-region test |
@@ -22,7 +23,8 @@ WCAG 2.2 AA.
 Organisation and project selection scope all workspace requests. Lists use the
 API's cursor pagination; refresh starts from the first page. Changes are
 pessimistic and duplicate submissions are disabled. Errors remain visible until
-dismissed or retried. Expired sessions return to sign-in without exposing data.
+dismissed or retried. Expired sessions preserve unsaved input and direct the user
+to copy changes before signing in again.
 Narrow layouts retain all navigation and allow horizontal table scrolling.
 Item search is transient because item names can be sensitive and the current
 workspace has no URL routing; it is debounced and superseded requests are ignored.

@@ -20,10 +20,14 @@ export async function request<T extends z.ZodType>(token: string, path: string, 
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const error = apiError.safeParse(payload);
-    throw new RequestError(error.success ? error.data.error : 'The request could not be completed.', response.status, error.success ? error.data.code : undefined);
+    const message = response.status === 401 ? 'Your session has expired. Copy any unsaved changes, then sign out and sign in again.' : error.success ? error.data.error : 'The request could not be completed.';
+    throw new RequestError(message, response.status, error.success ? error.data.code : undefined);
   }
-  const result = envelope.parse(payload);
-  return { data: schema.parse(result.data), pagination: result.pagination };
+  const result = envelope.safeParse(payload);
+  if (!result.success) throw new RequestError('The server returned an unexpected response. Try again.', response.status);
+  const data = schema.safeParse(result.data.data);
+  if (!data.success) throw new RequestError('The server returned an unexpected response. Try again.', response.status);
+  return { data: data.data, pagination: result.data.pagination };
 }
 
 export const named = z.object({ id: z.string(), name: z.string() });
