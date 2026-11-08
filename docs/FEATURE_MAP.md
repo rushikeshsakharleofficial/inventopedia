@@ -2,6 +2,9 @@
 
 Maps features to implementation files for targeted navigation.
 
+Vercel entry and build routing: `packages/api/src/vercel.ts`, `api/handler.mjs`,
+`vercel.json`; entry verification: `packages/api/tests/vercel.test.ts`.
+
 ## API Routes
 
 | Feature | Route File | Service | Migration |
@@ -128,3 +131,9 @@ planned. Inventory, stock, project audit/dashboard and attachments are implement
 - Stock direct-RPC authorization: migration `010_stock_authorization.sql`.
 - Verification: `tests/m9-routes.test.ts`, `tests/observability-schema.test.ts`,
   `tests/contracts.test.ts`, `src/services/attachments.test.ts`.
+
+## M11 security, performance and CI
+
+- Dependency audit, supported Node versions and scoped minimatch overrides: root `package.json` and `package-lock.json`.
+- Lint rules and CI checks: `eslint.config.mjs`, `.github/workflows/ci.yml`.
+- Cached OpenAPI response: `packages/api/src/app.ts`; contract migration and regression checks: `packages/api/src/contracts.ts`, `packages/api/tests/contracts.test.ts`.

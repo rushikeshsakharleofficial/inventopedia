@@ -10,11 +10,26 @@
     "test": "npm run test --workspaces --if-present",
     "test:api": "npm run test --workspace=packages/api",
     "test:web": "npm run test --workspace=packages/web",
-    "lint": "npm run lint --workspaces --if-present",
+    "lint": "eslint packages/api/src packages/web/src packages/shared/src packages/api/tests packages/api/scripts",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "engines": {
-    "node": ">=20"
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "typescript-eslint": "^8.72.1"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.5"
+    },
+    "eslint": {
+      "minimatch": "11.0.5"
+    },
+    "@eslint/config-array": {
+      "minimatch": "11.0.5"
+    }
   }
 }
-

@@ -11,6 +11,7 @@ import { responseContract } from './middleware/responseContract.js';
 
 export function createApp() {
   const app = new Hono<AppEnv>();
+  let openApiDocument: ReturnType<typeof createOpenApiDocument> | undefined;
 
   // Global middleware
   app.use('*', logger());
@@ -21,7 +22,7 @@ export function createApp() {
   // Routes
   app.route(`${API_PREFIX}/health`, healthRoute);
   app.route(`${API_PREFIX}/organisations`, organisationsRoute);
-  app.get(`${API_PREFIX}/openapi.json`, (c) => c.json(createOpenApiDocument()));
+  app.get(`${API_PREFIX}/openapi.json`, (c) => c.json(openApiDocument ??= createOpenApiDocument()));
   app.notFound((c) => c.json({ error: 'Route not found', code: 'NOT_FOUND', requestId: c.get('requestId') }, 404));
 
   return app;

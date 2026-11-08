@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const categoryIdSchema = z.string().uuid().transform((value) => value.toLowerCase());
+export const categoryIdSchema = z.string().guid().transform((value) => value.toLowerCase());
 const sortOrderSchema = z.number().int().min(-2147483648).max(2147483647);
 const categoryFields = z.object({
   name: z.string().trim().min(1).max(200),
@@ -37,7 +37,7 @@ export const categoryRowSchema = z.object({
   id: categoryIdSchema, project_id: categoryIdSchema, name: z.string().min(1).max(200),
   parent_id: categoryIdSchema.nullable(), sort_order: sortOrderSchema,
   path: z.string().refine((path) => path.startsWith('/') && path.endsWith('/')
-    && path.slice(1, -1).split('/').every((part) => z.string().uuid().safeParse(part).success), 'Invalid category path'),
+    && path.slice(1, -1).split('/').every((part) => z.string().guid().safeParse(part).success), 'Invalid category path'),
   created_at: z.string().datetime({ offset: true }), updated_at: z.string().datetime({ offset: true }),
 });
 

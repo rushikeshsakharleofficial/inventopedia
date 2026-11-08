@@ -43,7 +43,7 @@ export async function deleteTemplateVersion(projectId: string, templateId: strin
     .eq('project_id', projectId).eq('template_id', templateId).eq('id', versionId).select('id').maybeSingle();
   templateDbError(error, true);
   if (!data) missing();
-  return z.object({ id: z.string().uuid() }).parse(data);
+  return z.object({ id: z.string().guid() }).parse(data);
 }
 export async function listTemplateVersions(projectId: string, templateId: string, query: VersionQuery, token: string) {
   assertTemplateCursorScope(projectId, query, templateId);

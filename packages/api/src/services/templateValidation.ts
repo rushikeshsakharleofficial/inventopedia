@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { TemplateSchema } from '@shared/types/templates.js';
 
-export const templateIdSchema = z.string().uuid().transform((v) => v.toLowerCase());
+export const templateIdSchema = z.string().guid().transform((v) => v.toLowerCase());
 const fieldBase = {
   key: z.string().regex(/^[a-z][a-z0-9_]{0,63}$/).refine((v) => !['__proto__', 'prototype', 'constructor'].includes(v)),
   label: z.string().trim().min(1).max(200), required: z.boolean().default(false),
@@ -16,7 +16,7 @@ const fieldSchema = z.discriminatedUnion('type', [
     .refine((v) => new Set(v).size === v.length, 'Options must be unique') }).strict(),
 ]);
 export const templateSchema = z.object({ fields: z.array(fieldSchema)
-  .refine((v) => new Set(v.map((f) => f.key)).size === v.length, 'Field keys must be unique') }).strict() satisfies z.ZodType<TemplateSchema, z.ZodTypeDef, unknown>;
+  .refine((v) => new Set(v.map((f) => f.key)).size === v.length, 'Field keys must be unique') }).strict() satisfies z.ZodType<TemplateSchema>;
 const metadata = z.object({ name: z.string().trim().min(1).max(200), description: z.string().max(2000).nullable() }).strict();
 export const createTemplateSchema = metadata.extend({ description: metadata.shape.description.default(null) });
 export const updateTemplateSchema = metadata.partial().refine((v) => Object.values(v).some((x) => x !== undefined), 'At least one field required');
@@ -45,7 +45,7 @@ export const templateRowSchema = z.object({ id: templateIdSchema, project_id: te
   current_version_id: templateIdSchema.nullable(), created_at: time, updated_at: time });
 // Historical drafts/publications may predate typed schemas; preserve them on reads.
 export const versionRowSchema = z.object({ id: templateIdSchema, project_id: templateIdSchema,
-  template_id: templateIdSchema, version: number, schema: z.record(z.unknown()),
+  template_id: templateIdSchema, version: number, schema: z.record(z.string(), z.unknown()),
   published_at: time.nullable(), created_at: time });
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
 export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>;

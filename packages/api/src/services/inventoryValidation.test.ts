@@ -136,7 +136,7 @@ describe('cursor scope', () => {
   });
 
   it('throws on project mismatch', () => {
-    const query: any = {
+    const query: Parameters<typeof assertItemCursorScope>[1] = {
       limit: 20,
       cursor: { kind: 'items', projectId: '00000000-0000-0000-0000-000000000001', createdAt: '2026-01-01T00:00:00Z', id: projectId },
     };
@@ -145,7 +145,7 @@ describe('cursor scope', () => {
 
   it('throws on category filter mismatch', () => {
     const catId = '00000000-0000-0000-0000-000000000002';
-    const query: any = {
+    const query: Parameters<typeof assertItemCursorScope>[1] = {
       limit: 20,
       categoryId: catId,
       cursor: { kind: 'items', projectId, createdAt: '2026-01-01T00:00:00Z', id: projectId, categoryId: null, templateId: null },

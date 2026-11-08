@@ -13,7 +13,7 @@
 | M8 | Stock transaction API | ✅ Complete |
 | M9 | Attachments, audit and dashboard | ✅ Complete (local backend verification) |
 | M10 | Complete API v1 contracts and tests | ✅ Complete (local contract verification) |
-| M11 | Security, performance and CI | ⬚ Not Started |
+| M11 | Security, performance and CI | ✅ Complete (local verification) |
 | M12 | Vercel deployment integration | ⬚ Not Started |
 | M13 | Billing (when approved) | ⬚ Not Started |
 | M14 | Enterprise dedicated DB (when needed) | ⬚ Not Started |
@@ -126,5 +126,18 @@ The foundation stability gate remains subject to explicit user approval.
 - [x] Final workspace tests, typecheck, build and documentation review (lint unavailable)
 
 M9/M10 are local backend work. Hosted Supabase Storage and migrations are not
-applied or verified. M11 dependency/security/CI work and M12 deployment remain
-separate. The foundation stability gate has not been approved.
+applied or verified. M12 deployment remains separate. The foundation stability
+gate has not been approved.
+
+## M11 — Security, Performance and CI
+
+- [x] Upgrade vulnerable dependencies and audit the clean lockfile; preserve UUID-shaped IDs during Zod 4 migration.
+- [x] Enable ESLint across source, API tests and scripts; enforce lint, audit, typecheck, tests, build and OpenAPI freshness in CI.
+- [x] Cache the generated OpenAPI document per app instance and verify repeated requests.
+- [x] Verify a clean install, local CI commands, 515 tests, and the Node server health endpoint.
+
+On 2026-11-08, `npm audit` reported zero vulnerabilities. A local, sequential
+20-request OpenAPI sample took 243 ms before caching and 89 ms after; this is
+not a production load test. The workflow has not run on GitHub. Hosted Supabase,
+real PostgreSQL concurrency, and deployment remain unverified and outside this
+local milestone. Node support is `^20.19.0 || ^22.13.0 || >=24`.

@@ -4,8 +4,8 @@ import type { OrgAccess, ProjectAccess } from '../types.js';
 
 export const orgRoleSchema = z.enum(['owner', 'admin', 'member']);
 export const projectRoleSchema = z.enum(['owner', 'admin', 'editor', 'viewer']);
-const membershipSchema = z.object({ org_id: z.string().uuid(), role: orgRoleSchema });
-const projectSchema = z.object({ id: z.string().uuid(), org_id: z.string().uuid() });
+const membershipSchema = z.object({ org_id: z.string().guid(), role: orgRoleSchema });
+const projectSchema = z.object({ id: z.string().guid(), org_id: z.string().guid() });
 
 export async function resolveOrgAccess(
   orgId: string, userId: string, accessToken: string

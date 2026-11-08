@@ -3,25 +3,25 @@ import type { TemplateSchema, TemplateField } from '@shared/types/templates.js';
 
 // ── ID / pagination primitives ──────────────────────────────────────────────
 
-export const itemIdSchema = z.string().uuid().transform((v) => v.toLowerCase());
+export const itemIdSchema = z.string().guid().transform((v) => v.toLowerCase());
 const time = z.string().datetime({ offset: true });
 const limit = z.coerce.number().int().min(1).max(100).default(20);
 
 // ── Create / Update input schemas ───────────────────────────────────────────
 
 export const createItemSchema = z.object({
-  templateVersionId: z.string().uuid(),
-  categoryId: z.string().uuid().nullable().default(null),
+  templateVersionId: z.string().guid(),
+  categoryId: z.string().guid().nullable().default(null),
   name: z.string().trim().min(1).max(200),
   sku: z.string().trim().max(200).nullable().default(null),
-  attributes: z.record(z.unknown()).default({}),
+  attributes: z.record(z.string(), z.unknown()).default({}),
 }).strict();
 
 export const updateItemSchema = z.object({
-  categoryId: z.string().uuid().nullable().optional(),
+  categoryId: z.string().guid().nullable().optional(),
   name: z.string().trim().min(1).max(200).optional(),
   sku: z.string().trim().max(200).nullable().optional(),
-  attributes: z.record(z.unknown()).optional(),
+  attributes: z.record(z.string(), z.unknown()).optional(),
 }).strict().refine(
   (v) => Object.values(v).some((x) => x !== undefined),
   'At least one field required'
@@ -35,8 +35,8 @@ const itemCursor = z.object({
   createdAt: time,
   id: itemIdSchema,
   // scoping filters encoded in cursor to prevent cross-scope replay
-  categoryId: z.string().uuid().nullable().optional(),
-  templateId: z.string().uuid().nullable().optional(),
+  categoryId: z.string().guid().nullable().optional(),
+  templateId: z.string().guid().nullable().optional(),
 }).strict();
 
 export const itemQuerySchema = z.object({
@@ -51,8 +51,8 @@ export const itemQuerySchema = z.object({
       return z.NEVER;
     }
   }).optional(),
-  categoryId: z.string().uuid().optional(),
-  templateId: z.string().uuid().optional(),
+  categoryId: z.string().guid().optional(),
+  templateId: z.string().guid().optional(),
   search: z.string().trim().max(200).optional(),
 }).strict();
 
@@ -65,7 +65,7 @@ export const itemRowSchema = z.object({
   category_id: itemIdSchema.nullable(),
   name: z.string().min(1).max(200),
   sku: z.string().max(200).nullable(),
-  attributes: z.record(z.unknown()),
+  attributes: z.record(z.string(), z.unknown()),
   quantity: z.coerce.number(),
   created_at: time,
   updated_at: time,

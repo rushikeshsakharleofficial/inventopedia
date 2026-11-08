@@ -11,12 +11,12 @@ export function templateFailure(status: number, code: string, message: string): 
 export function templateDbError(error: { code: string } | null, deleting = false): void {
   if (!error) return;
   switch (error.code) {
-    case 'T0001': templateFailure(404, 'TEMPLATE_NOT_FOUND', 'Template not found');
-    case 'T0002': templateFailure(404, 'TEMPLATE_VERSION_NOT_FOUND', 'Template version not found');
-    case 'T0003': case '55000': templateFailure(409, 'TEMPLATE_VERSION_PUBLISHED', 'Published versions are immutable');
-    case 'T0004': templateFailure(400, 'INVALID_TEMPLATE_SCHEMA', 'Invalid template schema');
-    case 'T0005': case '23505': templateFailure(409, 'TEMPLATE_VERSION_CONFLICT', 'Template version conflicts with this change');
-    case '42501': templateFailure(403, 'FORBIDDEN', 'Insufficient project role');
+    case 'T0001': return templateFailure(404, 'TEMPLATE_NOT_FOUND', 'Template not found');
+    case 'T0002': return templateFailure(404, 'TEMPLATE_VERSION_NOT_FOUND', 'Template version not found');
+    case 'T0003': case '55000': return templateFailure(409, 'TEMPLATE_VERSION_PUBLISHED', 'Published versions are immutable');
+    case 'T0004': return templateFailure(400, 'INVALID_TEMPLATE_SCHEMA', 'Invalid template schema');
+    case 'T0005': case '23505': return templateFailure(409, 'TEMPLATE_VERSION_CONFLICT', 'Template version conflicts with this change');
+    case '42501': return templateFailure(403, 'FORBIDDEN', 'Insufficient project role');
     case '23503': case '23001':
       if (deleting) templateFailure(409, 'TEMPLATE_IN_USE', 'Template has retained versions or references');
   }
@@ -52,7 +52,7 @@ export async function deleteTemplate(projectId: string, templateId: string, toke
     .eq('project_id', projectId).eq('id', templateId).select('id').maybeSingle();
   templateDbError(error, true);
   if (!data) templateFailure(404, 'TEMPLATE_NOT_FOUND', 'Template not found');
-  return z.object({ id: z.string().uuid() }).parse(data);
+  return z.object({ id: z.string().guid() }).parse(data);
 }
 export async function listTemplates(projectId: string, query: TemplateQuery, token: string) {
   assertTemplateCursorScope(projectId, query);

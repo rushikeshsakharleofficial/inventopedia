@@ -29,8 +29,15 @@ describe('API v1 contracts', () => {
     const response = await app.request('/api/v1/openapi.json');
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(createOpenApiDocument());
+    expect(await (await app.request('/api/v1/openapi.json')).json()).toEqual(createOpenApiDocument());
     const health = await app.request('/api/v1/health');
     expect(contracts.find((c) => c.path.endsWith('/health'))!.response.safeParse(await health.json()).success).toBe(true);
+  });
+  it('preserves acceptance of UUID-shaped IDs without RFC version bits', () => {
+    const id = '12345678-1234-1234-1234-123456789abc';
+    const contract = contracts.find((c) => c.path.endsWith('/items') && c.method === 'POST')!;
+    expect(contract.body!.safeParse({ name: 'Item', templateVersionId: id }).success).toBe(true);
+    expect(contract.body!.safeParse({ name: 'Item', templateVersionId: 'not-an-id' }).success).toBe(false);
   });
   it('returns the common envelope for unknown routes', async () => {
     const response = await createApp().request('/api/v1/missing', { headers: { 'X-Request-Id': 'contract-test' } });

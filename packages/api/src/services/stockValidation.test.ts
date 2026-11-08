@@ -128,7 +128,7 @@ describe('cursor scope', () => {
   });
 
   it('throws on project mismatch', () => {
-    const query: any = {
+    const query: Parameters<typeof assertMovementCursorScope>[1] = {
       limit: 20,
       cursor: { kind: 'movements', projectId: '00000000-0000-0000-0000-000000000001', createdAt: '2026-01-01T00:00:00Z', id: projectId },
     };
@@ -137,7 +137,7 @@ describe('cursor scope', () => {
 
   it('throws on item filter mismatch', () => {
     const itemId = '00000000-0000-0000-0000-000000000002';
-    const query: any = {
+    const query: Parameters<typeof assertMovementCursorScope>[1] = {
       limit: 20,
       itemId,
       cursor: { kind: 'movements', projectId, createdAt: '2026-01-01T00:00:00Z', id: projectId },

@@ -6,7 +6,7 @@ import type { AppEnv } from '../types.js';
 /** Must run after authMiddleware. Scope comes only from the route parameter. */
 export function orgScope(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
-    const parsed = z.string().uuid().safeParse(c.req.param('orgId'));
+    const parsed = z.string().guid().safeParse(c.req.param('orgId'));
     if (!parsed.success) {
       return c.json({ error: 'Invalid organisation ID', code: 'VALIDATION_ERROR', requestId: c.get('requestId') }, 400);
     }

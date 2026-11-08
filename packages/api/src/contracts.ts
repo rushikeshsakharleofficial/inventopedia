@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { createProjectSchema, updateProjectSchema, projectQuerySchema } from './services/projects.js';
 import { createCategorySchema, updateCategorySchema, categoryQuerySchema } from './services/categoryValidation.js';
 import { createTemplateSchema, updateTemplateSchema, versionInputSchema, templateQuerySchema, versionQuerySchema } from './services/templateValidation.js';
@@ -8,7 +7,7 @@ import { createMovementSchema, movementQuerySchema, movementTypeSchema } from '.
 import { dashboardSchema, auditEventSchema, auditQuerySchema } from './services/observability.js';
 import { attachmentInputSchema, attachmentRowSchema, attachmentQuerySchema } from './services/attachments.js';
 
-const id = z.string().uuid();
+const id = z.string().guid();
 const time = z.string().datetime({ offset: true });
 const timestamps = { createdAt: time, updatedAt: time };
 const description = z.string().nullable();
@@ -18,8 +17,8 @@ const orgWithRole = organisation.extend({ userRole: role });
 const project = z.object({ id, orgId: id, name: z.string(), description, ...timestamps });
 const category = z.object({ id, projectId: id, name: z.string(), parentId: id.nullable(), path: z.string(), sortOrder: z.number().int(), ...timestamps });
 const template = z.object({ id, projectId: id, name: z.string(), description, currentVersionId: id.nullable(), ...timestamps });
-const version = z.object({ id, projectId: id, templateId: id, version: z.number().int().positive(), schema: z.record(z.unknown()), publishedAt: time.nullable(), createdAt: time });
-const item = z.object({ id, projectId: id, templateVersionId: id, categoryId: id.nullable(), name: z.string(), sku: z.string().nullable(), attributes: z.record(z.unknown()), quantity: z.number().finite(), ...timestamps });
+const version = z.object({ id, projectId: id, templateId: id, version: z.number().int().positive(), schema: z.record(z.string(), z.unknown()), publishedAt: time.nullable(), createdAt: time });
+const item = z.object({ id, projectId: id, templateVersionId: id, categoryId: id.nullable(), name: z.string(), sku: z.string().nullable(), attributes: z.record(z.string(), z.unknown()), quantity: z.number().finite(), ...timestamps });
 const movement = z.object({ id, itemId: id, type: movementTypeSchema, quantity: z.number().finite(), reason: description, referenceId: description, createdBy: id, createdAt: time });
 export const createOrgSchema = z.object({
   name: z.string().min(1).max(200),
@@ -52,7 +51,7 @@ const org = '/organisations';
 const projects = `${org}/{orgId}/projects`;
 const scoped = `${projects}/{projectId}`;
 add('GET', '/health', z.object({ status: z.literal('ok'), service: z.literal('inventopedia-api'), version: z.string(), timestamp: time }), 'Public');
-add('GET', '/openapi.json', z.object({ openapi: z.literal('3.1.0'), info: z.object({ title: z.string(), version: z.string() }), paths: z.record(z.unknown()), components: z.record(z.unknown()) }), 'Public');
+add('GET', '/openapi.json', z.object({ openapi: z.literal('3.1.0'), info: z.object({ title: z.string(), version: z.string() }), paths: z.record(z.string(), z.unknown()), components: z.record(z.string(), z.unknown()) }), 'Public');
 add('POST', org, envelope(organisation), 'Signed in', createOrgSchema, undefined, 201);
 add('GET', org, envelope(z.array(orgWithRole)), 'Signed in');
 add('GET', `${org}/{orgId}`, envelope(orgWithRole), 'Org member');
@@ -92,7 +91,7 @@ add('GET', `${attachments}/{attachmentId}/download`, envelope(z.object({ signedU
 add('DELETE', `${attachments}/{attachmentId}`, envelope(deleted), 'Project owner/admin/editor');
 
 function jsonSchema(schema: z.ZodTypeAny) {
-  const result = zodToJsonSchema(schema, { $refStrategy: 'none', effectStrategy: 'input' });
+  const result = z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' });
   const { $schema: dialect, ...value } = result;
   void dialect;
   return value;

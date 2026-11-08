@@ -176,7 +176,7 @@ export async function deleteItem(
     .maybeSingle();
   mutationError(error, true);
   if (!data) notFound();
-  return z.object({ id: z.string().uuid() }).parse(data);
+  return z.object({ id: z.string().guid() }).parse(data);
 }
 
 export async function listItems(

@@ -12,7 +12,7 @@ export const attachmentsRoute = new Hono<AppEnv>();
 const base = '/:orgId/projects/:projectId/items/:itemId/attachments';
 const validateIds: MiddlewareHandler<AppEnv> = async (c, next) => {
   const ids = [c.req.param('itemId'), c.req.param('attachmentId')].filter((id) => id !== undefined);
-  if (!ids.every((id) => z.string().uuid().safeParse(id).success)) {
+  if (!ids.every((id) => z.string().guid().safeParse(id).success)) {
     return c.json({ error: 'Invalid attachment scope', code: 'VALIDATION_ERROR', requestId: c.get('requestId') }, 400);
   }
   await next();

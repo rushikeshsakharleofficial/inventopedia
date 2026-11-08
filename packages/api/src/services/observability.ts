@@ -7,12 +7,12 @@ export const dashboardSchema = z.object({
 }).strict();
 export const auditQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  cursor: z.string().uuid().optional(),
+  cursor: z.string().guid().optional(),
 }).strict();
 export const auditEventSchema = z.object({
-  id: z.string().uuid(), project_id: z.string().uuid(), actor_id: z.string().uuid().nullable(),
+  id: z.string().guid(), project_id: z.string().guid(), actor_id: z.string().guid().nullable(),
   action: z.enum(['insert', 'update', 'delete']), entity_type: z.string(),
-  entity_id: z.string().uuid(), created_at: z.string().datetime({ offset: true }),
+  entity_id: z.string().guid(), created_at: z.string().datetime({ offset: true }),
 });
 
 export async function getDashboard(projectId: string, token: string) {

@@ -19,7 +19,7 @@ export function validateBody<T extends ZodSchema>(schema: T): MiddlewareHandler<
             error: 'Validation failed',
             code: 'VALIDATION_ERROR',
             requestId: c.get('requestId') || 'unknown',
-            details: err.errors.map((e) => ({
+            details: err.issues.map((e) => ({
               path: e.path.join('.'),
               message: e.message,
             })),
@@ -57,7 +57,7 @@ export function validateQuery<T extends ZodSchema>(schema: T): MiddlewareHandler
             error: 'Invalid query parameters',
             code: 'VALIDATION_ERROR',
             requestId: c.get('requestId') || 'unknown',
-            details: err.errors.map((e) => ({
+            details: err.issues.map((e) => ({
               path: e.path.join('.'),
               message: e.message,
             })),

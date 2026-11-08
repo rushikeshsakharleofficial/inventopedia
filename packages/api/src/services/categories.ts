@@ -66,7 +66,7 @@ export async function deleteCategory(projectId: string, categoryId: string, toke
     .eq('project_id', projectId).eq('id', categoryId).select('id').maybeSingle();
   mutationError(error, true);
   if (!data) notFound();
-  return z.object({ id: z.string().uuid() }).parse(data);
+  return z.object({ id: z.string().guid() }).parse(data);
 }
 
 export async function listCategories(projectId: string, query: CategoryQuery, token: string) {

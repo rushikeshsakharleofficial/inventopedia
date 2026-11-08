@@ -4,15 +4,17 @@ import { getSupabaseClient } from '../db/index.js';
 import { getItem } from './inventory.js';
 
 export const attachmentInputSchema = z.object({
+  // Control characters are deliberately rejected in file names.
+  // eslint-disable-next-line no-control-regex
   filename: z.string().trim().min(1).max(255).regex(/^[^/\\\x00-\x1f\x7f]+$/),
 }).strict();
 export const attachmentRowSchema = z.object({
-  id: z.string().uuid(), project_id: z.string().uuid(), item_id: z.string().uuid(),
-  filename: z.string(), created_by: z.string().uuid(), deleted: z.boolean(),
+  id: z.string().guid(), project_id: z.string().guid(), item_id: z.string().guid(),
+  filename: z.string(), created_by: z.string().guid(), deleted: z.boolean(),
   created_at: z.string().datetime({ offset: true }),
 });
 export const attachmentQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(20), cursor: z.string().uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20), cursor: z.string().guid().optional(),
 }).strict();
 const bucket = 'inventory-attachments';
 type Attachment = z.infer<typeof attachmentRowSchema>;

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // ── ID primitives ───────────────────────────────────────────────────────────
 
-export const movementIdSchema = z.string().uuid().transform((v) => v.toLowerCase());
+export const movementIdSchema = z.string().guid().transform((v) => v.toLowerCase());
 const time = z.string().datetime({ offset: true });
 const limit = z.coerce.number().int().min(1).max(100).default(20);
 
@@ -14,7 +14,7 @@ export const movementTypeSchema = z.enum(movementTypes);
 // ── Create movement schema ──────────────────────────────────────────────────
 
 export const createMovementSchema = z.object({
-  itemId: z.string().uuid(),
+  itemId: z.string().guid(),
   type: movementTypeSchema,
   quantity: z.number().positive().finite(),
   reason: z.string().trim().max(1000).nullable().default(null),
@@ -43,7 +43,7 @@ export const movementQuerySchema = z.object({
       return z.NEVER;
     }
   }).optional(),
-  itemId: z.string().uuid().optional(),
+  itemId: z.string().guid().optional(),
   type: movementTypeSchema.optional(),
 }).strict();
 

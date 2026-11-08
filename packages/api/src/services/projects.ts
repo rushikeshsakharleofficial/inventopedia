@@ -3,7 +3,7 @@ import type { Project } from '@shared/types/entities.js';
 import { getSupabaseAdmin, getSupabaseClient } from '../db/index.js';
 
 const projectRowSchema = z.object({
-  id: z.string().uuid(), org_id: z.string().uuid(), name: z.string().min(1).max(200),
+  id: z.string().guid(), org_id: z.string().guid(), name: z.string().min(1).max(200),
   description: z.string().max(2000).nullable(),
   created_at: z.string().datetime({ offset: true }), updated_at: z.string().datetime({ offset: true }),
 });
@@ -15,7 +15,7 @@ export const updateProjectSchema = createProjectSchema.partial()
 
 const cursorSchema = z.string().max(100).regex(/^[A-Za-z0-9_-]+$/).transform((value, ctx) => {
   const decoded = Buffer.from(value, 'base64url').toString('utf8');
-  if (!z.string().uuid().safeParse(decoded).success || Buffer.from(decoded).toString('base64url') !== value) {
+  if (!z.string().guid().safeParse(decoded).success || Buffer.from(decoded).toString('base64url') !== value) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid cursor' });
     return z.NEVER;
   }
@@ -52,7 +52,7 @@ export async function createProject(
     throw Object.assign(new Error('Insufficient organisation permissions'), { status: 403, code: 'FORBIDDEN' });
   }
   if (error) throw new Error('Failed to create project');
-  const id = z.string().uuid().parse(data);
+  const id = z.string().guid().parse(data);
   return getProject(orgId, id, accessToken);
 }
 
@@ -98,5 +98,5 @@ export async function deleteProject(orgId: string, projectId: string, accessToke
   }
   if (error) throw new Error('Failed to delete project');
   if (!data) notFound();
-  return z.object({ id: z.string().uuid() }).parse(data);
+  return z.object({ id: z.string().guid() }).parse(data);
 }

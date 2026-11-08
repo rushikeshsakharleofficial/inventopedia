@@ -4,12 +4,12 @@ import { orgRoleSchema, resolveOrgAccess } from './access.js';
 import type { Organisation, OrgMember, OrgRole } from '@shared/types/entities.js';
 
 const orgRowSchema = z.object({
-  id: z.string().uuid(), name: z.string(), slug: z.string(),
+  id: z.string().guid(), name: z.string(), slug: z.string(),
   created_at: z.string(), updated_at: z.string(),
 });
 const orgWithRoleSchema = z.object({ role: orgRoleSchema, organisations: orgRowSchema });
 const memberRowSchema = z.object({
-  id: z.string().uuid(), org_id: z.string().uuid(), user_id: z.string().uuid(),
+  id: z.string().guid(), org_id: z.string().guid(), user_id: z.string().guid(),
   role: orgRoleSchema, created_at: z.string(),
 });
 
