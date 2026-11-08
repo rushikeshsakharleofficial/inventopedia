@@ -31,6 +31,7 @@ service-account*.json
 
 # Local deployment state
 .vercel/
+/.generated-api/
 .supabase/
 supabase/.temp/
 supabase/.branches/

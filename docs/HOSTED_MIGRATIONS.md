@@ -1,0 +1,21 @@
+# Hosted migration record
+
+Supabase project `pzwmftssvadaruwplsdi`: migrations 001–010 were applied in
+order through SQL Editor on 2026-11-08. This is a manual record, not a Supabase
+CLI migration history. Do not replay these migrations. Before using automated
+migration tooling, reconcile its history with the hosted schema and this record.
+
+SHA-256 hashes of the local files applied:
+
+```text
+001_control_schema.sql cef95228caa522c3fb0037a88f48a355049eb370a2e771a1740cf5e660e18505
+002_projects.sql 582e6af9d7ec62adbb43798d96b5b1a716ed1715da8743eb85a4caa49dc35b14
+003_tenant_security.sql cd34bc9b47741189840dc43af682a4d0725b2f8e9f96de8434602e5c7b7c313d
+004_project_management.sql 62685780e13d1da719b54d9a30af67e689ed300cdc77fca8c730382f7d0da408
+005_inventory_schema.sql 5828a8c058099079bc3832383fb5bf760e41e9ea822b8ecf71f8df860517f25c
+006_template_builder.sql 9c63b83d1e53d5b1fb17cccfd70b6a42e37086b988f9e932c516d52b5683f003
+007_stock_transactions.sql 965864473c67c4ac93cfed92d94a4b9c22180d2a9b52dd2baa24d64375ac3ae6
+008_project_observability.sql 970e7c6a9bc25070967377ca9e87b818e41b1f254176366fe85c02a0c1f2e4ae
+009_attachments.sql 8e334715fef3629c48787943df38569836ad65bd291a880438be5d24f6c69cf1
+010_stock_authorization.sql 2bab37e1e7f1c9dce19ed49be88ae4f65b4979b920e2d85af3739b9fbfd091fc
+```
