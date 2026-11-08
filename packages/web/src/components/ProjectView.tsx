@@ -31,6 +31,8 @@ export function ProjectView({ token, orgId, projectId, projectName, section, onN
   const [quantity, setQuantity] = useState('1');
   const [reason, setReason] = useState('');
   const [choices, setChoices] = useState<Row[]>([]);
+  const [choicesCursor, setChoicesCursor] = useState<string | null>(null);
+  const [choicesLoading, setChoicesLoading] = useState(false);
   const [template, setTemplate] = useState<{ id: string; name: string } | null>(null);
   const [item, setItem] = useState<z.infer<typeof itemSchema> | null>(null);
   const [category, setCategory] = useState<z.infer<typeof categorySchema> | null>(null);
@@ -76,10 +78,16 @@ export function ProjectView({ token, orgId, projectId, projectName, section, onN
   async function openCreate() {
     setError(''); setNotice(''); setName(''); setSku(''); setSelected(''); setReason(''); setQuantity('1'); setType('receive');
     if (section === 'items' || section === 'movements' || section === 'categories') {
-      try { const result = await request(token, `${base}/${section === 'items' ? 'templates' : section === 'categories' ? 'categories' : 'items'}?limit=100`, rows); setChoices(result.data); }
+      try { const result = await request(token, `${base}/${section === 'items' ? 'templates' : section === 'categories' ? 'categories' : 'items'}?limit=100`, rows); setChoices(result.data); setChoicesCursor(result.pagination?.hasMore ? result.pagination.cursor : null); }
       catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to load options.'); return; }
     }
     setCreate(true);
+  }
+  async function loadMoreChoices() {
+    if (!choicesCursor || choicesLoading || section === 'overview' || section === 'templates') return;
+    setChoicesLoading(true); setError('');
+    try { const choicePath = section === 'items' ? 'templates' : section === 'categories' ? 'categories' : 'items'; const result = await request(token, `${base}/${choicePath}?limit=100&cursor=${encodeURIComponent(choicesCursor)}`, rows); setChoices(current => [...current, ...result.data]); setChoicesCursor(result.pagination?.hasMore ? result.pagination.cursor : null); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to load more options.'); } finally { setChoicesLoading(false); }
   }
   async function submit(event: FormEvent) {
     event.preventDefault(); if (section === 'overview' || busy) return;
@@ -120,9 +128,9 @@ export function ProjectView({ token, orgId, projectId, projectName, section, onN
     </section>
     {create && section !== 'overview' && <Dialog titleId="record-title" onClose={() => { if (!busy) setCreate(false); }}><div className="modal-header"><div><p className="eyebrow">{projectName.toUpperCase()}</p><h2 id="record-title">{section === 'movements' ? 'Record movement' : `New ${labels[section]}`}</h2></div><button className="icon-button" aria-label="Close" onClick={() => setCreate(false)}>×</button></div><form noValidate onSubmit={submit} className="form-stack">
       {section !== 'movements' && <label>Name<input autoFocus value={name} onChange={e => setName(e.target.value)} maxLength={200} placeholder={`Name your ${labels[section]}`} /></label>}
-      {section === 'categories' && <label>Parent category<select value={selected} onChange={e => setSelected(e.target.value)}><option value="">No parent</option>{choices.map(choice => <option key={text(choice.id)} value={text(choice.id)}>{text(choice.name)}</option>)}</select><small>Optional. Shows up to 100 categories.</small></label>}
+      {section === 'categories' && <label>Parent category<select value={selected} onChange={e => setSelected(e.target.value)}><option value="">No parent</option>{choices.map(choice => <option key={text(choice.id)} value={text(choice.id)}>{text(choice.name)}</option>)}</select><small>Optional.</small></label>}
       {section === 'items' && <><label>Published template<select value={selected} onChange={e => setSelected(e.target.value)}><option value="">Select a template</option>{choices.filter(choice => typeof choice.currentVersionId === 'string').map(choice => <option key={text(choice.id)} value={text(choice.currentVersionId)}>{text(choice.name)}</option>)}</select><small>Only published templates can be used for items.</small></label><label>SKU <small>Optional</small><input value={sku} onChange={e => setSku(e.target.value)} placeholder="e.g. PART-001" /></label>{fields.map(field => <label key={field.key}>{field.label} {field.required && <small>Required</small>}{field.type === 'select' || field.type === 'boolean' ? <select value={attributes[field.key] ?? ''} onChange={e => setAttributes(current => ({ ...current, [field.key]: e.target.value }))}><option value="">Select an option</option>{(field.type === 'boolean' ? ['true', 'false'] : field.options ?? []).map(option => <option key={option} value={option}>{option === 'true' ? 'Yes' : option === 'false' ? 'No' : option}</option>)}</select> : <input type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'} value={attributes[field.key] ?? ''} onChange={e => setAttributes(current => ({ ...current, [field.key]: e.target.value }))} />}</label>)}</>}
       {section === 'movements' && <><label>Item<select value={selected} onChange={e => setSelected(e.target.value)}><option value="">Select an item</option>{choices.map(choice => <option key={text(choice.id)} value={text(choice.id)}>{text(choice.name)}</option>)}</select></label><label>Movement type<select value={type} onChange={e => setType(e.target.value)}><option value="receive">Receive</option><option value="ship">Ship</option><option value="adjust">Adjust (increase)</option><option value="transfer">Transfer (outbound)</option><option value="return">Return</option></select></label><label>Quantity<input type="number" min="0" step="any" value={quantity} onChange={e => setQuantity(e.target.value)} /></label><label>Reason <small>Optional</small><input value={reason} onChange={e => setReason(e.target.value)} /></label></>}
-      {fieldsLoading && section === 'items' && <p className="form-help" role="status">Loading template fields…</p>}{error && <p className="field-error" role="alert">{error}</p>}<div className="modal-actions"><button type="button" className="button secondary" onClick={() => setCreate(false)}>Cancel</button><button className="button primary" disabled={busy || (section === 'items' && fieldsLoading)}>{busy ? 'Saving…' : section === 'movements' ? 'Record movement' : `Create ${labels[section]}`}</button></div></form></Dialog>}
+      {choicesCursor && (section === 'items' || section === 'movements' || section === 'categories') && <button type="button" className="button secondary" disabled={choicesLoading} onClick={() => void loadMoreChoices()}>{choicesLoading ? 'Loading options…' : 'Load more options'}</button>}{fieldsLoading && section === 'items' && <p className="form-help" role="status">Loading template fields…</p>}{error && <p className="field-error" role="alert">{error}</p>}<div className="modal-actions"><button type="button" className="button secondary" onClick={() => setCreate(false)}>Cancel</button><button className="button primary" disabled={busy || (section === 'items' && fieldsLoading)}>{busy ? 'Saving…' : section === 'movements' ? 'Record movement' : `Create ${labels[section]}`}</button></div></form></Dialog>}
   </>;
 }
