@@ -1,5 +1,20 @@
 # AI Handoff — Inventopedia
 
+## Frontend checkpoint
+
+CURRENT_MILESTONE: Frontend implementation with frontend-design-premium.
+CURRENT_TASK: Complete the inventory workspace and verify the live Vercel deployment.
+STATUS: In progress; initial sign-in and workspace deployed, further local functionality is not yet deployed.
+LAST_VERIFIED_COMMIT: 2d63e2b on main; frontend changes are uncommitted.
+COMPLETED: Added design/UX contracts, Supabase auth, organisation/project selection and creation, dashboard and initial inventory/category/template/stock views. Vercel deployment dpl_9wrjqJmxEN1HNyKXkKEaBgusKrxR serves the initial frontend with production browser configuration. Added local template versioning, item custom fields and attachment detail workflows after deployment.
+FILES_CHANGED: DESIGN.md, UX-CONTRACT.md, packages/web/package.json, package-lock.json, packages/web/src/{App.tsx,App.test.tsx,index.css,vite-env.d.ts,components/*,lib/client.ts}, docs/AI_HANDOFF.md.
+TESTS_PASSED: Initial web typecheck, lint, build and two auth-screen tests; Vercel initial deployment READY and sign-in screen rendered in browser. Later local edits still require validation.
+TESTS_FAILED: Initial placeholder test was updated for the sign-in screen. No current confirmed failures.
+UNCOMMITTED_CHANGES: Frontend and design changes are local only; initial subset deployed directly to Vercel but not committed or pushed.
+BLOCKERS: None confirmed.
+NEXT_EXACT_ACTION: Complete and test item/category/template/project lifecycle and attachment flows, verify real authenticated browser interactions and mobile accessibility, run premium audit and required checks, then redeploy the completed frontend.
+IMPORTANT_WARNINGS: User requested no backend changes. Live Vercel currently has only the initial frontend subset. Never expose the service-role key; the browser uses only the Supabase public key. Authenticated Storage upload/download remains unverified. Project migration history remains manual as documented in docs/HOSTED_MIGRATIONS.md.
+
 ## Hosted deployment checkpoint
 
 CURRENT_MILESTONE: M12 — deployment in progress
