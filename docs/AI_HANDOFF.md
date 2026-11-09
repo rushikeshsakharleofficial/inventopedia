@@ -4,16 +4,16 @@
 
 CURRENT_MILESTONE: Frontend implementation with frontend-design-premium.
 CURRENT_TASK: Complete the inventory workspace and verify the live Vercel deployment.
-STATUS: In progress; initial sign-in and workspace deployed, further local functionality is not yet deployed.
-LAST_VERIFIED_COMMIT: 2d63e2b on main; frontend changes are uncommitted.
-COMPLETED: Added design/UX contracts, Supabase auth, organisation/project selection and creation, dashboard and initial inventory/category/template/stock views. Vercel deployment dpl_9wrjqJmxEN1HNyKXkKEaBgusKrxR serves the initial frontend with production browser configuration. Added local template versioning, item custom fields and attachment detail workflows after deployment.
-FILES_CHANGED: DESIGN.md, UX-CONTRACT.md, packages/web/package.json, package-lock.json, packages/web/src/{App.tsx,App.test.tsx,index.css,vite-env.d.ts,components/*,lib/client.ts}, docs/AI_HANDOFF.md.
-TESTS_PASSED: Initial web typecheck, lint, build and two auth-screen tests; Vercel initial deployment READY and sign-in screen rendered in browser. Later local edits still require validation.
-TESTS_FAILED: Initial placeholder test was updated for the sign-in screen. No current confirmed failures.
-UNCOMMITTED_CHANGES: Frontend and design changes are local only; initial subset deployed directly to Vercel but not committed or pushed.
-BLOCKERS: None confirmed.
-NEXT_EXACT_ACTION: Complete and test item/category/template/project lifecycle and attachment flows, verify real authenticated browser interactions and mobile accessibility, run premium audit and required checks, then redeploy the completed frontend.
-IMPORTANT_WARNINGS: User requested no backend changes. Live Vercel currently has only the initial frontend subset. Never expose the service-role key; the browser uses only the Supabase public key. Authenticated Storage upload/download remains unverified. Project migration history remains manual as documented in docs/HOSTED_MIGRATIONS.md.
+STATUS: Frontend deployed; targeted tests and production HTTP checks pass. Hosted attachment upload/download and email recovery remain unverified.
+LAST_VERIFIED_COMMIT: 682ba7c on main, matching origin/main at inspection.
+COMPLETED: Frontend includes Supabase authentication and recovery, organisation/project management, inventory, categories, templates, stock, attachments and activity. Vercel production deployment dpl_FZtN3qTR2DQwcpxb1wXJ5o1766bC is READY. The earlier signed-in browser smoke test verified an empty workspace, mobile navigation, unsaved-change confirmation and cleanup; authenticated API list queries passed. Production auth site and redirect URL point to inventopedia.vercel.app.
+FILES_CHANGED: packages/web/index.html, packages/web/public/icon.svg, packages/web/src/components/Workspace.tsx, packages/web/src/components/Workspace.test.tsx, docs/AI_HANDOFF.md. Frontend implementation was committed in earlier commits through 682ba7c.
+TESTS_PASSED: Web tests 14/14, typecheck, lint, production build and frontend-design-premium strict audit (zero findings). Earlier full workspace run passed 515 API and 12 web tests, typecheck, build and lint. Current production homepage and icon return HTTP 200; API health returns ok.
+TESTS_FAILED: None in the latest checks. The previous browser task space was unavailable during final verification; prior browser tests used an earlier frontend deployment.
+UNCOMMITTED_CHANGES: This checkpoint includes the icon and workspace fixes; inspect Git status for subsequent work. The frontend changes were deployed directly to Vercel.
+BLOCKERS: No deployment blocker; hosted upload/download and recovery email need safe end-to-end verification.
+NEXT_EXACT_ACTION: Verify authenticated attachment upload/download and password recovery using an approved disposable environment; reconcile manual migration history before future automated migrations.
+IMPORTANT_WARNINGS: Browser uses only the Supabase public key. The service-role key remains server-side. Authenticated Storage upload/download and real recovery emails were not exercised. Project migration history remains manual as documented in docs/HOSTED_MIGRATIONS.md.
 
 ## Hosted deployment checkpoint
 
