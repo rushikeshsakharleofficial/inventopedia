@@ -137,18 +137,20 @@ describe('M9 database boundaries', () => {
       .toEqual([{ allowed: false }]);
   });
   it('atomically transfers stock to a second item without changing total quantity', async () => {
-    const destination = '70000000-0000-4000-8000-000000000002';
-    await asUser(owner, `INSERT INTO inventory.items(id,project_id,template_version_id,name)
-      VALUES('${destination}','${project}','60000000-0000-4000-8000-000000000001','Destination')`);
+    const destination = (await asUser(owner, `INSERT INTO inventory.items(project_id,template_version_id,name)
+      VALUES('${project}','60000000-0000-4000-8000-000000000001','Destination') RETURNING id`))[0] as { id: string };
+    const destinationId = destination.id;
     await asUser(owner, `SELECT inventory.record_stock_movement('${project}','${item}','receive',10,NULL,'audit-transfer-seed')`);
     await expect(asUser(owner, `SELECT inventory.record_stock_movement('${project}','${item}','transfer',1,NULL,'bad-transfer')`))
       .rejects.toMatchObject({ code: '22023' });
-    await expect(asUser(viewer, `SELECT inventory.record_stock_transfer('${project}','${item}','${destination}',2,NULL,'viewer-transfer')`))
+    await expect(asUser(viewer, `SELECT inventory.record_stock_transfer('${project}','${item}','${destinationId}',2,NULL,'viewer-transfer')`))
       .rejects.toMatchObject({ code: '42501' });
-    await asUser(owner, `SELECT inventory.record_stock_transfer('${project}','${item}','${destination}',3,NULL,'transfer-001')`);
-    expect(await asUser(owner, `SELECT id,quantity FROM inventory.items WHERE id IN ('${item}','${destination}') ORDER BY id`))
-      .toEqual([{ id: item, quantity: 7 }, { id: destination, quantity: 3 }]);
-    await expect(asUser(owner, `SELECT inventory.record_stock_transfer('${project}','${item}','${destination}',3,NULL,'transfer-001')`))
+    await asUser(owner, `SELECT inventory.record_stock_transfer('${project}','${item}','${destinationId}',3,NULL,'transfer-001')`);
+    expect(await asUser(owner, `SELECT quantity FROM inventory.items WHERE id='${item}'`))
+      .toEqual([{ quantity: 7 }]);
+    expect(await asUser(owner, `SELECT quantity FROM inventory.items WHERE id='${destinationId}'`))
+      .toEqual([{ quantity: 3 }]);
+    await expect(asUser(owner, `SELECT inventory.record_stock_transfer('${project}','${item}','${destinationId}',3,NULL,'transfer-001')`))
       .rejects.toMatchObject({ code: '23505' });
     expect(await asUser(owner, `SELECT quantity FROM inventory.items WHERE id='${item}'`))
       .toEqual([{ quantity: 7 }]);
