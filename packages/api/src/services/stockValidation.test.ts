@@ -152,7 +152,7 @@ describe('cursor scope', () => {
       cursor: { kind: 'movements', projectId, createdAt: '2026-01-01T00:00:00Z', id: projectId },
     };
     expect(() => assertMovementCursorScope(projectId, query)).toThrow(/item filter/);
-  }
+  });
 
   it('rejects reusing a cursor for a different movement type', () => {
     const query: Parameters<typeof assertMovementCursorScope>[1] = {
@@ -160,7 +160,7 @@ describe('cursor scope', () => {
       cursor: { kind: 'movements', projectId, type: 'receive', createdAt: '2026-01-01T00:00:00Z', id: projectId },
     };
     expect(() => assertMovementCursorScope(projectId, query)).toThrow(/movement type/);
-  }););
+  });
 
   it('encodes and decodes a cursor', () => {
     const row = movementRowSchema.parse({
