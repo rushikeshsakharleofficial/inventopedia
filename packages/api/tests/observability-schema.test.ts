@@ -146,16 +146,16 @@ describe('M9 database boundaries', () => {
     await expect(asUser(viewer, `SELECT inventory.record_stock_transfer('${project}','${item}','${destinationId}',2,NULL,'viewer-transfer')`))
       .rejects.toMatchObject({ code: '42501' });
     await asUser(owner, `SELECT inventory.record_stock_transfer('${project}','${item}','${destinationId}',3,NULL,'transfer-001')`);
-    expect(await asUser(owner, `SELECT quantity FROM inventory.items WHERE id='${item}'`))
+    expect(await asUser(owner, `SELECT quantity::float8 AS quantity FROM inventory.items WHERE id='${item}'`))
       .toEqual([{ quantity: 7 }]);
-    expect(await asUser(owner, `SELECT quantity FROM inventory.items WHERE id='${destinationId}'`))
+    expect(await asUser(owner, `SELECT quantity::float8 AS quantity FROM inventory.items WHERE id='${destinationId}'`))
       .toEqual([{ quantity: 3 }]);
     await expect(asUser(owner, `SELECT inventory.record_stock_transfer('${project}','${item}','${destinationId}',3,NULL,'transfer-001')`))
       .rejects.toMatchObject({ code: '23505' });
-    expect(await asUser(owner, `SELECT quantity FROM inventory.items WHERE id='${item}'`))
+    expect(await asUser(owner, `SELECT quantity::float8 AS quantity FROM inventory.items WHERE id='${item}'`))
       .toEqual([{ quantity: 7 }]);
     await asUser(owner, `SELECT inventory.record_stock_movement('${project}','${item}','adjust',-2,NULL,'adjust-down')`);
-    expect(await asUser(owner, `SELECT quantity FROM inventory.items WHERE id='${item}'`))
+    expect(await asUser(owner, `SELECT quantity::float8 AS quantity FROM inventory.items WHERE id='${item}'`))
       .toEqual([{ quantity: 5 }]);
   });
 
