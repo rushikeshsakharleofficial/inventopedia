@@ -26,13 +26,13 @@ beforeAll(async () => {
       $$ SELECT current_setting('test.storage.operation',true)=operation $$;
     CREATE FUNCTION storage.allow_any_operation(operations TEXT[]) RETURNS BOOLEAN LANGUAGE sql STABLE AS
       $$ SELECT current_setting('test.storage.operation',true)=ANY(operations) $$;
-    CREATE TABLE storage.buckets(id TEXT PRIMARY KEY,name TEXT,public BOOLEAN);
+    CREATE TABLE storage.buckets(id TEXT PRIMARY KEY,name TEXT,public BOOLEAN, file_size_limit BIGINT, allowed_mime_types TEXT[]);
     CREATE TABLE storage.objects(id UUID DEFAULT gen_random_uuid(),bucket_id TEXT,name TEXT);
     ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
     GRANT USAGE ON SCHEMA storage TO authenticated;
     GRANT SELECT,INSERT,DELETE ON storage.objects TO authenticated;`);
   for (const migration of ['001_control_schema','002_projects','003_tenant_security','004_project_management',
-    '005_inventory_schema','006_template_builder','007_stock_transactions','008_project_observability','009_attachments','010_stock_authorization']) {
+    '005_inventory_schema','006_template_builder','007_stock_transactions','008_project_observability','009_attachments','010_stock_authorization','011_inventory_audit_hardening']) {
     await db.exec(readFileSync(new URL(`../migrations/${migration}.sql`, import.meta.url), 'utf8'));
   }
   await db.exec(`INSERT INTO auth.users VALUES('${owner}'),('${viewer}'),('${outsider}');
@@ -42,7 +42,7 @@ beforeAll(async () => {
     INSERT INTO control.project_members(project_id,user_id,role) VALUES('${project}','${viewer}','viewer');
     INSERT INTO inventory.templates(id,project_id,name) VALUES('50000000-0000-4000-8000-000000000001','${project}','Template');
     INSERT INTO inventory.template_versions(id,project_id,template_id,version,schema)
-      VALUES('60000000-0000-4000-8000-000000000001','${project}','50000000-0000-4000-8000-000000000001',1,'{"fields":[]}');`);
+      VALUES('60000000-0000-4000-8000-000000000001','${project}','50000000-0000-4000-8000-000000000001',1,'{"fields":[{"key":"serial","label":"Serial","type":"text","required":false}]}');`);
   // Publish through the same validated lifecycle used by the API.
   await db.exec(`UPDATE inventory.template_versions SET published_at = now() WHERE project_id='${project}';
     INSERT INTO inventory.items(id,project_id,template_version_id,name)
@@ -65,7 +65,7 @@ async function asUser(user: string, sql: string, operation = 'object.get_authent
 describe('M9 database boundaries', () => {
   it('authorizes stock RPC directly, binds actor and rolls back insufficient stock', async () => {
     const rpc = (type: string, quantity: number, actor = 'NULL') =>
-      `SELECT inventory.record_stock_movement('${project}','${item}','${type}',${quantity},NULL,NULL,${actor})`;
+      `SELECT inventory.record_stock_movement('${project}','${item}','${type}',${quantity},NULL,'audit-${type}-${quantity}',${actor})`;
     await expect(asUser(viewer, rpc('receive', 5))).rejects.toThrow(/forbidden/);
     await expect(asUser(outsider, rpc('receive', 5))).rejects.toThrow(/Project not found/);
     await expect(asUser(owner, rpc('receive', 5, `'${viewer}'`))).rejects.toThrow(/Actor mismatch/);
@@ -121,4 +121,40 @@ describe('M9 database boundaries', () => {
     await asUser(owner, `DELETE FROM storage.objects WHERE name='${path}'`, 'object.delete_many');
     expect(await asUser(owner, 'SELECT name FROM storage.objects')).toEqual([]);
   });
+  it('enforces published field types for direct authenticated item writes', async () => {
+    await expect(asUser(owner, `UPDATE inventory.items SET attributes='{"serial":42}' WHERE id='${item}'`))
+      .rejects.toMatchObject({ code: '23514' });
+    await expect(asUser(owner, `UPDATE inventory.items SET attributes='{"unknown":"x"}' WHERE id='${item}'`))
+      .rejects.toMatchObject({ code: '23514' });
+    await asUser(owner, `UPDATE inventory.items SET attributes='{"serial":"ABC"}' WHERE id='${item}'`);
+    expect(await asUser(owner, `SELECT attributes FROM inventory.items WHERE id='${item}'`))
+      .toEqual([{ attributes: { serial: 'ABC' } }]);
+  });
+  it('requires protected publication RPC, not direct published_at updates', async () => {
+    await expect(asUser(owner, `UPDATE inventory.template_versions SET published_at=now() WHERE project_id='${project}'`))
+      .rejects.toMatchObject({ code: '42501' });
+    expect(await asUser(owner, `SELECT has_function_privilege('anon', 'inventory.record_stock_transfer(uuid,uuid,uuid,numeric,text,text,uuid)', 'EXECUTE') AS allowed`))
+      .toEqual([{ allowed: false }]);
+  });
+  it('atomically transfers stock to a second item without changing total quantity', async () => {
+    const destination = '70000000-0000-4000-8000-000000000002';
+    await asUser(owner, `INSERT INTO inventory.items(id,project_id,template_version_id,name)
+      VALUES('${destination}','${project}','60000000-0000-4000-8000-000000000001','Destination')`);
+    await asUser(owner, `SELECT inventory.record_stock_movement('${project}','${item}','receive',10,NULL,'audit-transfer-seed')`);
+    await expect(asUser(owner, `SELECT inventory.record_stock_movement('${project}','${item}','transfer',1,NULL,'bad-transfer')`))
+      .rejects.toMatchObject({ code: '22023' });
+    await expect(asUser(viewer, `SELECT inventory.record_stock_transfer('${project}','${item}','${destination}',2,NULL,'viewer-transfer')`))
+      .rejects.toMatchObject({ code: '42501' });
+    await asUser(owner, `SELECT inventory.record_stock_transfer('${project}','${item}','${destination}',3,NULL,'transfer-001')`);
+    expect(await asUser(owner, `SELECT id,quantity FROM inventory.items WHERE id IN ('${item}','${destination}') ORDER BY id`))
+      .toEqual([{ id: item, quantity: 7 }, { id: destination, quantity: 3 }]);
+    await expect(asUser(owner, `SELECT inventory.record_stock_transfer('${project}','${item}','${destination}',3,NULL,'transfer-001')`))
+      .rejects.toMatchObject({ code: '23505' });
+    expect(await asUser(owner, `SELECT quantity FROM inventory.items WHERE id='${item}'`))
+      .toEqual([{ quantity: 7 }]);
+    await asUser(owner, `SELECT inventory.record_stock_movement('${project}','${item}','adjust',-2,NULL,'adjust-down')`);
+    expect(await asUser(owner, `SELECT quantity FROM inventory.items WHERE id='${item}'`))
+      .toEqual([{ quantity: 5 }]);
+  });
+
 });

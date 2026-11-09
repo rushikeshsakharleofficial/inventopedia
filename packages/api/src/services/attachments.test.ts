@@ -90,7 +90,7 @@ describe('M9 real Supabase client transport', () => {
   });
   it('calls stock RPC in inventory schema rather than control', async () => {
     replies.push({ data: { ...row, type: 'receive', quantity: 2, reason: null, reference_id: null, resulting_quantity: 2 } });
-    await recordStockMovement(project, { itemId: item, type: 'receive', quantity: 2, reason: null, referenceId: null }, uid, 'caller');
+    await recordStockMovement(project, { itemId: item, type: 'receive', quantity: 2, reason: null, referenceId: 'req-1' }, uid, 'caller');
     expect(seen[0].headers.get('Content-Profile')).toBe('inventory');
     expect(seen[0].body).toMatchObject({ p_project_id: project, p_created_by: uid });
   });

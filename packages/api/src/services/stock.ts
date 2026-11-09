@@ -17,6 +17,7 @@ function mapMovement(value: unknown): StockMovement {
   return {
     id: row.id,
     itemId: row.item_id,
+    destinationItemId: row.destination_item_id ?? null,
     type: row.type,
     quantity: row.quantity,
     reason: row.reason,
@@ -29,6 +30,7 @@ function mapMovement(value: unknown): StockMovement {
 /** Extended response for create — includes resulting quantity */
 export interface StockMovementResult extends StockMovement {
   resultingQuantity: number;
+  destinationResultingQuantity?: number;
 }
 
 // ── Record stock movement via transactional RPC ─────────────────────────────
@@ -41,15 +43,26 @@ export async function recordStockMovement(
 ): Promise<StockMovementResult> {
   const supabase = getSupabaseClient(token);
 
-  const { data, error } = await supabase.schema('inventory').rpc('record_stock_movement', {
-    p_project_id: projectId,
-    p_item_id: input.itemId,
-    p_type: input.type,
-    p_quantity: input.quantity,
-    p_reason: input.reason,
-    p_reference_id: input.referenceId,
-    p_created_by: userId,
-  });
+  const isTransfer = input.type === 'transfer';
+  const { data, error } = isTransfer
+    ? await supabase.schema('inventory').rpc('record_stock_transfer', {
+        p_project_id: projectId,
+        p_source_item_id: input.itemId,
+        p_destination_item_id: input.destinationItemId,
+        p_quantity: input.quantity,
+        p_reason: input.reason,
+        p_reference_id: input.referenceId,
+        p_created_by: userId,
+      })
+    : await supabase.schema('inventory').rpc('record_stock_movement', {
+        p_project_id: projectId,
+        p_item_id: input.itemId,
+        p_type: input.type,
+        p_quantity: input.quantity,
+        p_reason: input.reason,
+        p_reference_id: input.referenceId,
+        p_created_by: userId,
+      });
 
   if (error) {
     if (error.code === '42501') {
@@ -79,6 +92,7 @@ export async function recordStockMovement(
   return {
     id: parsed.id,
     itemId: parsed.item_id,
+    destinationItemId: parsed.destination_item_id ?? null,
     type: parsed.type,
     quantity: parsed.quantity,
     reason: parsed.reason,
@@ -86,6 +100,7 @@ export async function recordStockMovement(
     createdBy: parsed.created_by,
     createdAt: parsed.created_at,
     resultingQuantity: parsed.resulting_quantity,
+    ...(parsed.destination_resulting_quantity !== undefined ? { destinationResultingQuantity: parsed.destination_resulting_quantity } : {}),
   };
 }
 

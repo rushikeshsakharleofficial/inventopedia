@@ -83,6 +83,7 @@ export interface InventoryItem {
 export interface StockMovement {
   id: string;
   itemId: string;
+  destinationItemId?: string | null;
   type: StockMovementType;
   quantity: number;
   reason: string | null;

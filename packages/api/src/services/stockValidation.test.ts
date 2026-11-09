@@ -13,6 +13,7 @@ describe('createMovementSchema', () => {
     itemId: '550e8400-e29b-41d4-a716-446655440000',
     type: 'receive',
     quantity: 10,
+    referenceId: 'req-001',
   };
 
   it('accepts valid input with defaults', () => {
@@ -20,12 +21,12 @@ describe('createMovementSchema', () => {
     expect(result.type).toBe('receive');
     expect(result.quantity).toBe(10);
     expect(result.reason).toBeNull();
-    expect(result.referenceId).toBeNull();
+    expect(result.referenceId).toBe('req-001');
   });
 
   it('accepts all movement types', () => {
     for (const type of ['receive', 'ship', 'adjust', 'transfer', 'return']) {
-      const result = createMovementSchema.parse({ ...validInput, type });
+      const result = createMovementSchema.parse({ ...validInput, type, ...(type === 'transfer' ? { destinationItemId: '660e8400-e29b-41d4-a716-446655440000' } : {}) });
       expect(result.type).toBe(type);
     }
   });
@@ -44,8 +45,16 @@ describe('createMovementSchema', () => {
     expect(() => createMovementSchema.parse({ ...validInput, quantity: 0 })).toThrow();
   });
 
-  it('rejects negative quantity', () => {
+  it('rejects negative quantities except for adjustments', () => {
     expect(() => createMovementSchema.parse({ ...validInput, quantity: -5 })).toThrow();
+    expect(createMovementSchema.parse({ ...validInput, type: 'adjust', quantity: -5 }).quantity).toBe(-5);
+  });
+
+  it('requires idempotency key and distinct destination for transfers', () => {
+    expect(() => createMovementSchema.parse({ itemId: validInput.itemId, type: 'ship', quantity: 1 })).toThrow();
+    expect(() => createMovementSchema.parse({ ...validInput, type: 'transfer' })).toThrow();
+    expect(() => createMovementSchema.parse({ ...validInput, type: 'transfer', destinationItemId: validInput.itemId })).toThrow();
+    expect(() => createMovementSchema.parse({ ...validInput, destinationItemId: validInput.itemId })).toThrow();
   });
 
   it('rejects non-finite quantity', () => {
@@ -143,7 +152,15 @@ describe('cursor scope', () => {
       cursor: { kind: 'movements', projectId, createdAt: '2026-01-01T00:00:00Z', id: projectId },
     };
     expect(() => assertMovementCursorScope(projectId, query)).toThrow(/item filter/);
-  });
+  }
+
+  it('rejects reusing a cursor for a different movement type', () => {
+    const query: Parameters<typeof assertMovementCursorScope>[1] = {
+      limit: 20, type: 'ship',
+      cursor: { kind: 'movements', projectId, type: 'receive', createdAt: '2026-01-01T00:00:00Z', id: projectId },
+    };
+    expect(() => assertMovementCursorScope(projectId, query)).toThrow(/movement type/);
+  }););
 
   it('encodes and decodes a cursor', () => {
     const row = movementRowSchema.parse({

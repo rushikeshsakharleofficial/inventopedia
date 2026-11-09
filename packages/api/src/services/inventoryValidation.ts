@@ -37,6 +37,7 @@ const itemCursor = z.object({
   // scoping filters encoded in cursor to prevent cross-scope replay
   categoryId: z.string().guid().nullable().optional(),
   templateId: z.string().guid().nullable().optional(),
+  search: z.string().max(200).nullable().optional(),
 }).strict();
 
 export const itemQuerySchema = z.object({
@@ -95,6 +96,9 @@ export function assertItemCursorScope(
   if ((c.templateId ?? null) !== (query.templateId ?? null)) {
     throw Object.assign(new Error('Cursor template filter mismatch'), { status: 400, code: 'VALIDATION_ERROR' });
   }
+  if ((c.search ?? null) !== (query.search ?? null)) {
+    throw Object.assign(new Error('Cursor search filter mismatch'), { status: 400, code: 'VALIDATION_ERROR' });
+  }
 }
 
 export function encodeItemCursor(
@@ -109,6 +113,7 @@ export function encodeItemCursor(
     id: row.id,
     categoryId: query.categoryId ?? null,
     templateId: query.templateId ?? null,
+    search: query.search ?? null,
   };
   return Buffer.from(JSON.stringify(payload)).toString('base64url');
 }
@@ -178,7 +183,7 @@ function validateFieldValue(
       return { value };
     case 'date':
       if (typeof value !== 'string') return { error: 'Expected ISO date string' };
-      if (Number.isNaN(Date.parse(value))) return { error: 'Invalid date format' };
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value)) || new Date(value).toISOString().slice(0, 10) !== value) return { error: 'Invalid ISO date' };
       return { value };
     case 'select':
       if (typeof value !== 'string') return { error: 'Expected string' };
