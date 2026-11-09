@@ -15,7 +15,7 @@ const fieldSchema = z.discriminatedUnion('type', [
   z.object({ ...fieldBase, type: z.literal('select'), options: z.array(choice).min(1)
     .refine((v) => new Set(v).size === v.length, 'Options must be unique') }).strict(),
 ]);
-export const templateSchema = z.object({ fields: z.array(fieldSchema)
+export const templateSchema = z.object({ fields: z.array(fieldSchema).max(100)
   .refine((v) => new Set(v.map((f) => f.key)).size === v.length, 'Field keys must be unique') }).strict() satisfies z.ZodType<TemplateSchema>;
 const metadata = z.object({ name: z.string().trim().min(1).max(200), description: z.string().max(2000).nullable() }).strict();
 export const createTemplateSchema = metadata.extend({ description: metadata.shape.description.default(null) });

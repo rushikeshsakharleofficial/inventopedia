@@ -19,7 +19,7 @@ const category = z.object({ id, projectId: id, name: z.string(), parentId: id.nu
 const template = z.object({ id, projectId: id, name: z.string(), description, currentVersionId: id.nullable(), ...timestamps });
 const version = z.object({ id, projectId: id, templateId: id, version: z.number().int().positive(), schema: z.record(z.string(), z.unknown()), publishedAt: time.nullable(), createdAt: time });
 const item = z.object({ id, projectId: id, templateVersionId: id, categoryId: id.nullable(), name: z.string(), sku: z.string().nullable(), attributes: z.record(z.string(), z.unknown()), quantity: z.number().finite(), ...timestamps });
-const movement = z.object({ id, itemId: id, type: movementTypeSchema, quantity: z.number().finite(), reason: description, referenceId: description, createdBy: id, createdAt: time });
+const movement = z.object({ id, itemId: id, destinationItemId: id.nullable().optional(), type: movementTypeSchema, quantity: z.number().finite(), reason: description, referenceId: description, createdBy: id, createdAt: time });
 export const createOrgSchema = z.object({
   name: z.string().min(1).max(200),
   slug: z.string().min(3).max(64).regex(/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/, 'Invalid slug format'),
@@ -79,7 +79,7 @@ add('DELETE', `${versions}/{versionId}`, envelope(deleted), 'Project owner/admin
 add('POST', `${versions}/{versionId}/publish`, envelope(version), 'Project owner/admin; no request body');
 crud(`${scoped}/items`, 'itemId', item, createItemSchema, updateItemSchema, itemQuerySchema, 'Project owner/admin/editor');
 const stock = `${scoped}/stock/movements`;
-add('POST', stock, envelope(movement.extend({ resultingQuantity: z.number().finite() })), 'Project owner/admin/editor', createMovementSchema, undefined, 201);
+add('POST', stock, envelope(movement.extend({ resultingQuantity: z.number().finite(), destinationResultingQuantity: z.number().finite().optional() })), 'Project owner/admin/editor', createMovementSchema, undefined, 201);
 add('GET', stock, paginated(movement), 'Project member', undefined, movementQuerySchema);
 add('GET', `${stock}/{movementId}`, envelope(movement), 'Project member');
 add('GET', `${scoped}/dashboard`, envelope(dashboardSchema), 'Project member');

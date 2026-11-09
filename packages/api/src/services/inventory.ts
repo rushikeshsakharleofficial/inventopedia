@@ -188,7 +188,7 @@ export async function listItems(
 
   let builder = client(token)
     .from('items')
-    .select('*')
+    .select(query.templateId ? '*,template_versions!inner(template_id)' : '*')
     .eq('project_id', projectId)
     .order('created_at', { ascending: false })
     .order('id', { ascending: true })
@@ -199,25 +199,14 @@ export async function listItems(
     builder = builder.eq('category_id', query.categoryId);
   }
   if (query.templateId) {
-    // Filter by template_id via template_versions join is complex with Supabase;
-    // instead filter by template versions belonging to the template.
-    // We'll use a subquery approach: get version IDs for this template, then filter.
-    const { data: versions, error: vErr } = await client(token)
-      .from('template_versions')
-      .select('id')
-      .eq('project_id', projectId)
-      .eq('template_id', query.templateId);
-    if (vErr) throw new Error('Failed to resolve template versions');
-    const versionIds = (versions || []).map((v: { id: string }) => v.id);
-    if (versionIds.length === 0) {
-      // No versions — return empty
-      return { data: [], pagination: { hasMore: false, cursor: null } };
-    }
-    builder = builder.in('template_version_id', versionIds);
+    // Database-side FK join avoids truncation at the Data API row limit.
+    builder = builder.eq('template_versions.template_id', query.templateId);
   }
   if (query.search) {
     // ilike on name or sku
-    builder = builder.or(`name.ilike.%${query.search}%,sku.ilike.%${query.search}%`);
+    // Quote reserved PostgREST grammar characters; escape SQL LIKE wildcards.
+    const escaped = query.search.replace(/[\\"%_]/g, (char) => `\\${char}`);
+    builder = builder.or(`name.ilike."*${escaped}*",sku.ilike."*${escaped}*"`);
   }
 
   // Cursor pagination (created_at DESC, id ASC)
