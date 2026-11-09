@@ -81,6 +81,7 @@ export const rpcResultSchema = z.object({
   id: movementIdSchema,
   project_id: movementIdSchema,
   item_id: movementIdSchema,
+  destination_item_id: movementIdSchema.nullable().optional(),
   type: movementTypeSchema,
   quantity: z.coerce.number(),
   reason: z.string().nullable(),
