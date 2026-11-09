@@ -8544,6 +8544,7 @@
                     "type": "object",
                     "properties": {
                       "fields": {
+                        "maxItems": 100,
                         "type": "array",
                         "items": {
                           "oneOf": [
@@ -8698,8 +8699,7 @@
                               "additionalProperties": false
                             }
                           ]
-                        },
-                        "maxItems": 100
+                        }
                       }
                     },
                     "required": [
@@ -9933,6 +9933,7 @@
                     "type": "object",
                     "properties": {
                       "fields": {
+                        "maxItems": 100,
                         "type": "array",
                         "items": {
                           "oneOf": [
@@ -10087,8 +10088,7 @@
                               "additionalProperties": false
                             }
                           ]
-                        },
-                        "maxItems": 100
+                        }
                       }
                     },
                     "required": [
